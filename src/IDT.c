@@ -1,6 +1,8 @@
 #include <IDT.h>
 #include <system.h>
 
+/* INTERRUPT DESCRIPTOR TABLE IMPLEMENTATION */
+
 extern void idt_flush();
 
 struct idt_entry{
@@ -39,6 +41,7 @@ void idt_setEntry(unsigned char indexEntry,unsigned long base, unsigned short kS
 
 void idt_install()
 {
+	/* Install the 256-items structure to register the interrupt service routines(ISR) */
 	idtPtr.limit = (sizeof(struct idt_entry) * 256) -1;
 	idtPtr.base = (unsigned int) &idtTable;
 	memset ((unsigned char*)(&idtTable),0,sizeof(struct idt_entry) * 256);

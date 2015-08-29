@@ -32,36 +32,36 @@ static void kTermReadFile(char* fileName);
 static void kTermMoreFile(char *filename);
 
 struct functionPointer{
-    void (*funcPTR)();
-    char *name;
+	void (*funcPTR)();
+	char *name;
 };
 
 static struct functionPointer fPtr[NUM_FUNCTIONS]={
-   { kTermGetCpuVendor     , "cpuVendor"  },
-   { kTermGetCpuFeatures   , "cpuFeatures"},
-   { kTermFullscreen       , "fullscreen" },
-   { kTermTitleScreen      , "halfscreen" },
-   { kTermChangeBackground , "background" },
-   { kTermChangeForeground , "foreground" },
-   { kTermEcho             , "echo"       },
-   { kTermClear            , "clear"      },
-   { kTermExit             , "exit"       },
-   { kTermLayout           , "set_layout" },
-   { kTermHelp             , "help"       },
-   { kTermGetSector        , "hexdump"    },
-   { kTermReadFile         , "read"      },
-   { kTermMoreFile		   , "more"		 }
+	{ kTermGetCpuVendor		, "cpuVendor"  },
+	{ kTermGetCpuFeatures	, "cpuFeatures"},
+	{ kTermFullscreen		, "fullscreen" },
+	{ kTermTitleScreen		, "halfscreen" },
+	{ kTermChangeBackground	, "background" },
+	{ kTermChangeForeground	, "foreground" },
+	{ kTermEcho				, "echo"       },
+	{ kTermClear			, "clear"      },
+	{ kTermExit				, "exit"       },
+	{ kTermLayout			, "set_layout" },
+	{ kTermHelp				, "help"       },
+	{ kTermGetSector		, "hexdump"    },
+	{ kTermReadFile			, "read"       },
+	{ kTermMoreFile			, "more"		 }
 };
 
 static void getCommand(char *cmd)
 {
-    unsigned char c=0;
-    int i=0;
-    memset((unsigned char*)cmd,0,CMD_LENGTH);
-    while(1){
-        c=getLastKeyPressed();
-        switch(c){
-        case 0x0:
+	unsigned char c=0;
+	int i=0;
+	memset((unsigned char*)cmd,0,CMD_LENGTH);
+	while(1){
+	c=getLastKeyPressed();
+	switch(c){
+		case 0x0:
             continue;
         case 0x8:{
             /*delete only the command characters */

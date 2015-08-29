@@ -17,22 +17,31 @@
 #include <fat12.h>
 
 void main(struct multiboot_info *mbootPtr){
-    int kernelSize =0;
-    asm("mov %%edx,%0\n" : "=m" (kernelSize):);
-    gdt_install();
-    idt_install();
-    isr_install();
-    irq_install();
-    timer_install();
-    PHYinit(mbootPtr,kernelSize);
-    VMMinit();
-    keyboard_install();
-    initDisk();
-    initScreen();
+	int kernelSize =0;
+
+	/* In EDX the bootloader writes the size of the kernel */
+	asm("mov %%edx,%0\n" : "=m" (kernelSize):);
+
+	/* Install tables and interrupts */
+	gdt_install();
+	idt_install();
+	isr_install();
+	irq_install();
+	timer_install();
+
+	/* Install the Memory managers */
+	PHYinit(mbootPtr,kernelSize);
+	VMMinit();
+
+	keyboard_install();
+	initDisk();
+	initScreen();
 	FAT12Init();
-    __asm__ __volatile__ ("sti");
 
-    kTerm();
+	/* Enable interrupts and execute the terminal */
+	__asm__ __volatile__ ("sti");
 
-    print("\r\nSystem quit!\r\n");
+	kTerm();
+
+	print("\r\nSystem quit!\r\n");
 }

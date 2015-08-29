@@ -3,6 +3,8 @@
 
 #include <system.h>
 
+/* INTERRUPT REQUESTS HEADER */
+
 void irq_setHandler(unsigned int irqNum, void (*handler)(struct registers*));
 void irq_unset_handler(unsigned int irqNum);
 void irq_handler(struct registers *reg);

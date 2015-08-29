@@ -4,6 +4,8 @@
 #include <IDT.h>
 #include <exception_messages.h>
 
+/* INTERRUPT SERVICE ROUTINES IMPLEMENTATION */
+
 extern void isr0();
 extern void isr1();
 extern void isr2();
@@ -46,6 +48,7 @@ void isr_handler(struct registers *reg)
 {
 	if(reg != NULL){
 		if(reg->intNum < 19){
+			/* Print the specific message associated (have a look at the exception_messages header...) */
 			putString(exception_messages[reg->intNum]);
 			putString(". System Halted.");
 			asm("cli");

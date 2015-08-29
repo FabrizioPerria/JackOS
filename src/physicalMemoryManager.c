@@ -2,13 +2,15 @@
 #include <screen.h>
 #include <system.h> 
 
+/* Physical memory manager implementation */
+
 static int memorySize=0;
 static int usedBlocks=0;
 static int maxBlocks=0;
 static int *bitmapPtr=0;
 
 /* Initialize the entire memory and set it as used memory by default;
-   only then the available regions will be set as free */
+   the virtual memory manager will set free the available regions */
 int phy_manager_init(int memory_size,int *bitmapAddr)
 {
     if(memorySize < 0) return -1;
@@ -17,10 +19,12 @@ int phy_manager_init(int memory_size,int *bitmapAddr)
     bitmapPtr = bitmapAddr;
     maxBlocks= (memorySize*1024)/PHY_MANAGER_BLOCK_SIZE;
     usedBlocks=maxBlocks;
-    
+
+    /* set the whole memory to 0xFF means the every block of the memory is used */
     memset((unsigned char*)bitmapPtr,0xff,(maxBlocks/PHY_MANAGER_BLOCKS_PER_BYTE));
+
     return 0;
-} 
+}
 
 /* Set a block as used in the bitmap */
 inline void mmap_set(int bit)
@@ -107,10 +111,10 @@ void *phy_manager_alloc_blocks(int numblocks)
     if((maxBlocks - usedBlocks <=0) || (numblocks <0))
         return NULL;
     freeBlock = phy_get_free_block(numblocks);
-    
+
     if(freeBlock < 0)
         return NULL;
-    for(i=0;i<numblocks;i++){    
+    for(i=0;i<numblocks;i++){
         mmap_set(freeBlock+i);
         usedBlocks++;
     }
@@ -133,8 +137,22 @@ void PHYinit(struct multiboot_info *mbootPtr,int kernelSize)
 {
     int i=0;
     struct multiboot_mmap_entry *region=(struct multiboot_mmap_entry*)mbootPtr->mmapAddress;
+	/* Initialize the entire memory 
+		the memory size is given by the multiboot structure (so is provided by the BIOS at startup)
+		|   BIOS   |
+		----------- 0x100000
+		|  KERNEL  |
+		|          |
+		----------- 0x100000 + kernelSize (multiplied by 512 because is given in number of clusters)
+		|          |
+		|   ...    | MEMORY AVAILABLE
+		|          |
+	*/
+
     phy_manager_init(getMemorySize(mbootPtr),(int*)(0x100000 + (kernelSize*512)));
-    
+
+	/* Print the characteristics of the regions of the memory (Testing purposes) */
+    /* TODO: Let's assume 10 possible regions of physical memory for now.....) */
     for(i=0;i<10;i++){
         if(region[i].type > 4)
             break;

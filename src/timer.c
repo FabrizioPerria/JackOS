@@ -59,7 +59,7 @@ void timer_handler(struct registers *reg)
 void timer_install()
 {
     irq_setHandler(0,&timer_handler);
-    timer_setup(121);
+    timer_setup(121);	/* 1 second */
 }
 
 /* function to let the kernel sleep for x seconds */

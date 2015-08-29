@@ -1,6 +1,11 @@
 #include <cpu.h>
 #include <screen.h>
 
+/* 
+   CPU scanner
+   Returns the vendor and the features related to the installed CPU
+*/
+
 /*Arrays of possible features of the CPU */
 static char* cpuFeaturesEDX[32]={
 	"Onboard FPU",

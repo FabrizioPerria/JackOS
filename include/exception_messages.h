@@ -1,6 +1,8 @@
 #ifndef __EXCEPTION_MESSAGES_H
 #define __EXCEPTION_MESSAGES_H
 
+/* Message structure for the exceptions */
+
 char* exception_messages[] =
 {
     "INT0: Division By Zero Exception",

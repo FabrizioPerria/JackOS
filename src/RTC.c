@@ -2,6 +2,10 @@
 #include <system.h>
 
 /*****************************************
+REAL TIME CLOCK
+
+Returns the system hour
+
  The format returned is:
     dd-MM-yyyy hh:mm:ss
 *******************************************/

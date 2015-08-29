@@ -3,6 +3,8 @@
 
 #include <multiboot.h>
 
+/* Physical memory manager header */
+
 #define PHY_MANAGER_BLOCKS_PER_BYTE 	8
 #define PHY_MANAGER_BLOCK_SIZE		4096
 #define PHY_MANAGER_BLOCK_ALIGNMENT	PHY_MANAGER_BLOCK_SIZE

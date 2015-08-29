@@ -2,6 +2,8 @@
 #include <IDT.h>
 #include <system.h>
 
+/* INTERRUPT REQUESTS IMPLEMENTATION */
+
 extern void irq0();
 extern void irq1();
 extern void irq2();
@@ -47,7 +49,7 @@ void irq_handler(struct registers *reg)
 	if(reg!=NULL){
 		handler=irqRoutines[reg->intNum-32];
 		if(handler != NULL)
-			handler(reg);
+			handler(reg);		/* If exists, execute the handler */
 
 		if(reg->intNum >=40)
 			outPortB(0xA0,0x20);
@@ -125,6 +127,8 @@ void PIC8259_remap()
 void irq_install()
 {
 	PIC8259_remap();
+
+	/* Right after the 32 exceptions we register the IRQs */
 
 	idt_setEntry(32,(unsigned)irq0,0x8,0x8E);
 	idt_setEntry(33,(unsigned)irq1,0x8,0x8E);

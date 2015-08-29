@@ -1,0 +1,153 @@
+#include <physicalMemoryManager.h>
+#include <screen.h>
+#include <system.h> 
+
+static int memorySize=0;
+static int usedBlocks=0;
+static int maxBlocks=0;
+static int *bitmapPtr=0;
+
+/* Initialize the entire memory and set it as used memory by default;
+   only then the available regions will be set as free */
+int phy_manager_init(int memory_size,int *bitmapAddr)
+{
+    if(memorySize < 0) return -1;
+
+    memorySize= memory_size;
+    bitmapPtr = bitmapAddr;
+    maxBlocks= (memorySize*1024)/PHY_MANAGER_BLOCK_SIZE;
+    usedBlocks=maxBlocks;
+    
+    memset((unsigned char*)bitmapPtr,0xff,(maxBlocks/PHY_MANAGER_BLOCKS_PER_BYTE));
+    return 0;
+} 
+
+/* Set a block as used in the bitmap */
+inline void mmap_set(int bit)
+{
+    if(bit > 0)
+        bitmapPtr[bit/32] |= (1<<(bit%32));
+}
+
+/* Set a block as free in the bitmap */
+inline void mmap_unset(int bit)
+{
+    if(bit > 0)
+        bitmapPtr[bit/32] &= ~(1<<(bit%32));
+}
+
+inline int mmap_test(int bit)
+{
+    if (bit > 0)
+        return (bitmapPtr[bit/32] & (1<<(bit%32)));
+    else return -1;
+}
+
+/* Get the length of the memory seen by the BIOS */
+unsigned long getMemorySize(struct multiboot_info *ptr)
+{
+    if(ptr == NULL) return 0;
+    else return ptr->memoryLow + ptr->memoryHigh;
+}
+
+/*Get the pointer to a countiguous set of <blocks> free blocks */
+int phy_get_free_block(int blocks)
+{
+    int i=0,j=0,k=0;
+    if(blocks < 0) return -1;
+    for(i=0;i<maxBlocks/32;i++){
+        if(bitmapPtr[i] != (int)(0xffffffff)){
+            for(j=0;j<32;j++){
+                k=0;
+                while(k<blocks){
+                    if((!(bitmapPtr[i] & (1<<(j+k))))){
+                        k++;
+                    }else break;
+                }
+                if(k==blocks)
+                    return (i*32)+j; 
+            }
+        }
+    }
+    return -1;
+}
+
+/* Initialize a region described by its base address and its length (info passed by the 
+BIOS through multiboot structure) */
+void phy_manager_init_region(int *base,int size)
+{
+    int align = (int)(base)/PHY_MANAGER_BLOCK_SIZE;
+    int blocks = (size / PHY_MANAGER_BLOCK_SIZE)+1;
+    if(size < 0) return;
+    while(blocks >=0){
+        mmap_unset(align++);
+        usedBlocks--;
+        blocks--;
+    } 
+    mmap_set(0);
+}
+
+/* Deinitialize a region of memory */
+void phy_manager_deinit_region(int *base,int size)
+{
+    int align = (int)(base)/PHY_MANAGER_BLOCK_SIZE;
+    int blocks = size / PHY_MANAGER_BLOCK_SIZE;
+    if(size < 0) return;
+    while(blocks >= 0){
+        mmap_set(align++);
+        usedBlocks++;
+        blocks--;
+    }
+}
+
+/* Allocate contiguous blocks of memory */
+void *phy_manager_alloc_blocks(int numblocks)
+{
+    int freeBlock=0,i=0;
+    if((maxBlocks - usedBlocks <=0) || (numblocks <0))
+        return NULL;
+    freeBlock = phy_get_free_block(numblocks);
+    
+    if(freeBlock < 0)
+        return NULL;
+    for(i=0;i<numblocks;i++){    
+        mmap_set(freeBlock+i);
+        usedBlocks++;
+    }
+    return (void*)(freeBlock * PHY_MANAGER_BLOCK_SIZE);
+}
+
+/* Deallocate contiguous blocks of memory */
+void phy_manager_dealloc_blocks(void *blockPtr,int numBlocks)
+{
+    int block=(int)blockPtr/PHY_MANAGER_BLOCK_SIZE;
+    int i=0;
+    if(numBlocks < 0) return;
+    for(i=0;i<numBlocks;i++){
+        mmap_unset(block+i);
+        usedBlocks--; 
+    }
+}
+
+void PHYinit(struct multiboot_info *mbootPtr,int kernelSize)
+{
+    int i=0;
+    struct multiboot_mmap_entry *region=(struct multiboot_mmap_entry*)mbootPtr->mmapAddress;
+    phy_manager_init(getMemorySize(mbootPtr),(int*)(0x100000 + (kernelSize*512)));
+    
+    for(i=0;i<10;i++){
+        if(region[i].type > 4)
+            break;
+        if(i> 0 && region[i].addressLow == 0)
+            break;
+        print("region %d: start: 0x%x length: %x end: %x type: %d\r\n",
+              i, (region[i].addressLow),
+              (region[i].lengthLow ),
+              (region[i].addressLow)+(region[i].lengthLow)-1,
+              region[i].type);
+        if(region[i].type==1){
+            phy_manager_init_region((int*)region[i].addressLow,
+                                    region[i].lengthLow);
+        }
+    }
+}

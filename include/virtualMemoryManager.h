@@ -4,6 +4,8 @@
 #include <pageTableEntry.h>
 #include <pageDirectoryEntry.h>
 
+/* VIRTUAL MEMORY MANAGER HEADER */
+
 typedef int virtualAddress;
 
 #define PAGES_PER_TABLE               1024     /* 4MB for each table */

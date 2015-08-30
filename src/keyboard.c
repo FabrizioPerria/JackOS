@@ -4,7 +4,9 @@
 #include <layouts.h>
 #include <IDT.h>
 #include <IRQ.h>
- 
+
+/* KEYBOARD DRIVER IMPLEMENTATION */
+
 static unsigned char flags=0;
 
 static unsigned char lastKeyPressed=0;
@@ -73,6 +75,10 @@ void keyboard_handler(struct registers *regs)
 void keyboard_install(){
     irq_setHandler(1,&keyboard_handler);
 }
+
+/****************************************************
+* Only Italian and US keyboard layout available now *
+*****************************************************/
 
 void setLayout(int l)
 {

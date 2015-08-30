@@ -44,22 +44,22 @@ Search a file using the name and set 0 on the pointed clusters
 */
 void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
 {
-    /* Put the content of the file in the buffer */
-    unsigned int i=0;
-    int phySector=0;
-    int FAT_offset=0,FAT_sector=0;
-    int nextCluster=0;
-    unsigned char *fat;
+	/* Put the content of the file in the buffer */
+	unsigned int i=0;
+	int phySector=0;
+	int FAT_offset=0,FAT_sector=0;
+	int nextCluster=0;
+	unsigned char *fat;
 
-    if(file){
+	if(file){
 		while(i<length){
-            phySector = 32 + (file->currentCluster-1);
-        	writeLBA28(_currentDevice,phySector,1,buffer+(i*512));
+			phySector = 32 + (file->currentCluster-1);
+			writeLBA28(_currentDevice,phySector,1,buffer+(i*512));
 			while(1){
-            	FAT_offset = file->currentCluster * 1.5;
-            	FAT_sector = 1 + (FAT_offset/_mi.sectorSize);
-            	readLBA28(_currentDevice,FAT_sector,2,fat);
-            	nextCluster = fat[FAT_offset % _mi.sectorSize]+
+				FAT_offset = file->currentCluster * 1.5;
+				FAT_sector = 1 + (FAT_offset/_mi.sectorSize);
+				readLBA28(_currentDevice,FAT_sector,2,fat);
+				nextCluster = fat[FAT_offset % _mi.sectorSize]+
                  	(fat[(FAT_offset%_mi.sectorSize)+1]*0x100);
 
             	if(file->currentCluster %2){
@@ -67,7 +67,7 @@ void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
             	}else{
                 	nextCluster &=0x0FFF;
             	}
-
+			}
             if((nextCluster == 0) ||(nextCluster >= 0xff8)){
                 file->eof = 1;
                 return;

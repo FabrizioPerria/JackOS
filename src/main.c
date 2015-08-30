@@ -17,11 +17,10 @@
 #include <fat12.h>
 
 void main(struct multiboot_info *mbootPtr){
-	int kernelSize =0;
+	int kernelSize = 0;
 
 	/* In EDX the bootloader writes the size of the kernel */
 	asm("mov %%edx,%0\n" : "=m" (kernelSize):);
-
 	/* Install tables and interrupts */
 	gdt_install();
 	idt_install();
@@ -36,7 +35,7 @@ void main(struct multiboot_info *mbootPtr){
 	keyboard_install();
 	initDisk();
 	initScreen();
-	FAT12Init();
+	//FAT12Init();
 
 	/* Enable interrupts and execute the terminal */
 	__asm__ __volatile__ ("sti");

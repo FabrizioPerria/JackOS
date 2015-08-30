@@ -4,6 +4,8 @@
 #include <physicalMemoryManager.h>
 #include <system.h>
 
+/* VIRTUAL MEMORY MANAGER IMPLEMENTATION */
+
 static pageDirectory *currentDirectory = 0;
 
 /* Map a physical address into a virtual address */
@@ -38,10 +40,12 @@ void VMMinit()
     pageDirectoryEntry *pde=0;
     int i,frame,virt;
 
+	/*DEFAULT PAGE TABLE */
     /* Default Page Table; it will be identity mapped */
     table_first_4mb = (pageTable*)phy_manager_alloc_blocks(1);
     if(!table_first_4mb) return;
 
+	/* Reset the default page table */
     memset((unsigned char*)table_first_4mb,0,sizeof(pageTable));
 
     for(i=0,frame=0x0,virt=0x0; i<1024 ;i++,frame+=4096,virt+=4096){
@@ -49,6 +53,8 @@ void VMMinit()
         pte_set_frame(pte,frame);
         table_first_4mb->table[PAGE_TABLE_INDEX(virt)]= (int)pte;
     }
+
+	/* KERNEL'S PAGE TABLE */
 
     /*3GB kernel's page table; map 1MB physicalmemory into
       3GB virtual memory */

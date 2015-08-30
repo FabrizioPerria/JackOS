@@ -7,6 +7,7 @@ CC		= gcc
 LD		= ld
 DD		= dd
 RM		= rm
+OBJCOPY = objcopy
 
 #DIRECTORIES DECLARATION
 OBJDIR = ./obj
@@ -29,6 +30,7 @@ OBJS = VBR.o system.o string.o screen.o \
        file_system.o
 
 KERNEL = kernel
+KERNELSYM = kernel.sym
 
 vpath %.o   ${OBJDIR}
 vpath %.h   ${INCLUDEDIR}
@@ -38,10 +40,9 @@ vpath %.c   ${SRCDIR}
 
 #FLAGS DECLARATION
 ASFLAGS = -I ${ASMDIR}/
-CFLAGS = -Wall -Wextra -g -pedantic -finline-functions -nostdinc 
--ffreestanding -fno-builtin -I${INCLUDEDIR} -c #-O2 #optimizing flag...
+CFLAGS = -O2 -g -Wall -Wextra -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c
 LDFLAGS = -T ${LINKER_FILE}
-
+OBJCOPYFLAGS = --only-keep-debug
 all: kernel
 
 %.o: %.S
@@ -54,10 +55,12 @@ main.o: main.c ${filter-out main.o,${OBJS}} multiboot.h
 	${TARGET}${CC} ${CFLAGS} -o ${OBJDIR}/main.o ${SRCDIR}/main.c
 
 kernel: ${OBJS}
-	${TARGET}${LD} ${LDFLAGS} -o ${BINDIR}/${KERNEL} ${OBJDIR}/*.o        
+	${TARGET}${LD} ${LDFLAGS} -o ${BINDIR}/${KERNEL} ${OBJDIR}/*.o
+	${OBJCOPY} ${OBJCOPYFLAGS} ${BINDIR}/${KERNEL} ${BINDIR}/${KERNELSYM}
 
 clean: clean_objs
 	${RM} -f ${KERNEL}
+	${RM} -f ${KERNELSYM}
 
 clean_objs:
 	${RM} -f ${OBJDIR}/*.o

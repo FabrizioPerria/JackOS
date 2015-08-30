@@ -51,14 +51,17 @@ void readFile(FILE *file,unsigned char *buffer,unsigned int length)
 
 void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 {
-    //int lengthBlocks=0;
+	(void)file;
+	(void)buffer;
+	(void)length;
+/*
 	if(file != NULL){
 		if(file->mode == 'a'){
-			/*Append data to the existing file; the file must exist*/
+			Append data to the existing file; the file must exist
 		} else if(file->mode == 'w'){
-			/*Overwrite the existing content*/
+			Overwrite the existing content
 		}
-	}
+	}*/
 }
 
 void closeFile(FILE *file)

@@ -96,7 +96,9 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE1_ADDR_HI_PORT,((numblock>>16)& 0xFF));
 		outPortB(IDE1_CMD_PORT,LBA28_READ_COMMAND);
 
+		//TODO :the program stucks here!!!!
 		while((inPortB(IDE1_CMD_PORT) & 0x48)!=0x48);
+
 		count*=256;
 		asm("mov %1,%%edi\n"
 			"mov $0x1f0,%%dx\n"

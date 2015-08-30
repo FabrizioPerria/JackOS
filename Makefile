@@ -38,7 +38,8 @@ vpath %.c   ${SRCDIR}
 
 #FLAGS DECLARATION
 ASFLAGS = -I ${ASMDIR}/
-CFLAGS = -Wall -Wextra -O2 -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c
+CFLAGS = -Wall -Wextra -g -pedantic -finline-functions -nostdinc 
+-ffreestanding -fno-builtin -I${INCLUDEDIR} -c #-O2 #optimizing flag...
 LDFLAGS = -T ${LINKER_FILE}
 
 all: kernel
@@ -95,8 +96,8 @@ virtualMemoryManager.o: physicalMemoryManager.o pageTableEntry.o pageDirectoryEn
 
 kTerm.o:                system.o screen.o string.o keyboard.o cpu.o physicalMemoryManager.o fat12.o kTerm.h
 
-diskPIO.o:				system.o screen.o timer.o diskPIO.h
+diskPIO.o:		system.o screen.o timer.o diskPIO.h
 
-fat12.o:				system.o diskPIO.o screen.o file_system.o fat12.h BPB.h
+fat12.o:		system.o diskPIO.o screen.o file_system.o fat12.h BPB.h
 
 file_system.o:          system.o file_system.h  

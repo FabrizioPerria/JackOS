@@ -83,7 +83,8 @@ void initDisk()
 
 int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 {
-	int ide=(driveSel%2)+1;
+	int ide=(driveSel/2)+1;
+	int cnt = 0;
 	if(count <= 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
 		return -1;
 	if(ide ==1){
@@ -96,8 +97,12 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE1_ADDR_HI_PORT,((numblock>>16)& 0xFF));
 		outPortB(IDE1_CMD_PORT,LBA28_READ_COMMAND);
 
-		//TODO :the program stucks here!!!!
-		while((inPortB(IDE1_CMD_PORT) & 0x48)!=0x48);
+		/* Read the register 5 times to make sure that the error is not related to the latency */
+		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 5))
+			cnt++;
+	
+		if(cnt == 5)
+			return 0;
 
 		count*=256;
 		asm("mov %1,%%edi\n"
@@ -113,7 +118,15 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
         outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
         outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
         outPortB(IDE2_CMD_PORT,LBA28_READ_COMMAND);
-        while((inPortB(IDE2_CMD_PORT) & 0x48)!=0x48);
+		//TODO :the program stucks here if the disk is not found!!!!
+
+        /* Read the register 5 times to make sure that the error is not related to the latency */
+        while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 5))
+            cnt++;
+    
+        if(cnt == 5)
+            return 0;
+
         count*=256;
         asm("mov %1,%%edi\n"
             "mov $0x170,%%dx\n"

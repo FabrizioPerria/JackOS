@@ -13,9 +13,9 @@
 
 
 enum keyLed{
-    SCROLL_LOCK = 1,
-    NUM_LOCK = 2,
-    CAPS_LOCK = 4
+	SCROLL_LOCK = 1,
+	NUM_LOCK = 2,
+	CAPS_LOCK = 4
 };
 
 void keyboard_install();

@@ -16,11 +16,11 @@ typedef int virtualAddress;
 #define PAGE_GET_PHYSICAL_ADDRESS(x)  (*x & (~0xfff))
 
 typedef struct pageTable{
-    pageTableEntry table[PAGES_PER_TABLE];
+	pageTableEntry table[PAGES_PER_TABLE];
 }pageTable;
 
 typedef struct pageDirectory{
-    pageDirectoryEntry table[PAGETABLES_PER_DIRECTORY];
+	pageDirectoryEntry table[PAGETABLES_PER_DIRECTORY];
 }pageDirectory;
 
 void mapPhytoVirtual(void *physicalAddress,void *virtualAddress);

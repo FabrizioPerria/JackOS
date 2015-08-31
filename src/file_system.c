@@ -15,38 +15,38 @@ static int isNumber(char c)
 
 FILE openFile(char *fileName,char mode)
 {
-    FILE file;
+	FILE file;
 	int fsIndex;
 	if(isNumber(fileName[0])){
 		fsIndex = fileName[0]-48;
- 		if(fileName != NULL && fileName[1]=='/'){
-        	file=fs[fsIndex]->open(fileName+2);
+		if(fileName != NULL && fileName[1]=='/'){
+			file=fs[fsIndex]->open(fileName+2);
 
-        	if(file.flags == FS_FILE_INVALID && mode == 'w'){
+			if(file.flags == FS_FILE_INVALID && mode == 'w'){
 				/*Create a file*/
 			}
 
 			file.deviceID=fsIndex;
 			file.mode = mode;
-        	return file;
-    	}
+			return file;
+		}
 	}
-    file.flags = FS_FILE_INVALID;
-    return file;
+	file.flags = FS_FILE_INVALID;
+	return file;
 }
 
 void readFile(FILE *file,unsigned char *buffer,unsigned int length)
 {
 	int lengthBlocks=0;
 
-    if(file!= NULL && file->mode == 'r'){
-        if(fs[file->deviceID]){
+	if(file!= NULL && file->mode == 'r'){
+		if(fs[file->deviceID]){
 			lengthBlocks=length/512;
 			if(length%512 != 0)
 				lengthBlocks++;
-            fs[file->deviceID]->read(file,buffer,lengthBlocks);
+			fs[file->deviceID]->read(file,buffer,lengthBlocks);
 		}
-    }
+	}
 }
 
 void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
@@ -66,17 +66,17 @@ void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 
 void closeFile(FILE *file)
 {
-    if(file!= NULL){
-        if(fs[file->deviceID])
-            fs[file->deviceID]->close(file);
-    }
+	if(file!= NULL){
+		if(fs[file->deviceID])
+			fs[file->deviceID]->close(file);
+	}
 }
 
 void registerFS(FILESYSTEM_PTR newFS,int deviceId)
 {
-    static int i = 0;
+	static int i = 0;
 	if(i < MAX_DEVICES && newFS){
-    	fs[deviceId]=newFS;
+		fs[deviceId]=newFS;
 		i++;
 	}
 }
@@ -84,5 +84,5 @@ void registerFS(FILESYSTEM_PTR newFS,int deviceId)
 void unregisterFS(unsigned int deviceID)
 {
 	if(deviceID < MAX_DEVICES)
-    	fs[deviceID]=NULL;
+		fs[deviceID]=NULL;
 }

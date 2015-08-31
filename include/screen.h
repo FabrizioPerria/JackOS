@@ -5,22 +5,22 @@
 #include <varFunc.h>
 
 enum vga_colors{
-    BLACK=0,
-    BLUE,
-    GREEN,
-    CYAN,
-    RED,
-    MAGENTA,
-    BROWN,
-    LIGHT_GREY,
-    DARK_GREY,
-    LIGHT_BLUE,
-    LIGHT_GREEN,
-    LIGHT_CYAN,
-    LIGHT_RED,
-    LIGHT_MAGENTA,
-    LIGHT_BROWN,
-    WHITE
+	BLACK=0,
+	BLUE,
+	GREEN,
+	CYAN,
+	RED,
+	MAGENTA,
+	BROWN,
+	LIGHT_GREY,
+	DARK_GREY,
+	LIGHT_BLUE,
+	LIGHT_GREEN,
+	LIGHT_CYAN,
+	LIGHT_RED,
+	LIGHT_MAGENTA,
+	LIGHT_BROWN,
+	WHITE
 };
 
 #define VGA_MEMORY 0xB8000

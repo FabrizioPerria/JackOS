@@ -2,6 +2,7 @@
 #include <system.h>
 
 /* GLOBAL DESCRIPTOR TABLE IMPLEMENTATION */
+/* Define memory segments */
 
 /* GDT Entry structure */
 struct gdtEntry

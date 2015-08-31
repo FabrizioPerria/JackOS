@@ -3,17 +3,17 @@
 
 enum pageTableEntryFlags
 {
-    PTE_PRESENT       = 0x1,
-    PTE_WRITABLE      = 0x2,
-    PTE_USERMODE      = 0x4,
-    PTE_WRITETHROUGH  = 0x8,
-    PTE_NOT_CACHEABLE = 0x10,
-    PTE_ACCESSED      = 0x20,
-    PTE_DIRTY         = 0x40,
-    PTE_PAT           = 0x80,
-    PTE_CPU_GLOBAL    = 0x100,
-    PTE_LV4_GLOBAL    = 0x200,
-    PTE_FRAME     = 0x7FFF000
+	PTE_PRESENT       = 0x1,
+	PTE_WRITABLE      = 0x2,
+	PTE_USERMODE      = 0x4,
+	PTE_WRITETHROUGH  = 0x8,
+	PTE_NOT_CACHEABLE = 0x10,
+	PTE_ACCESSED      = 0x20,
+	PTE_DIRTY         = 0x40,
+	PTE_PAT           = 0x80,
+	PTE_CPU_GLOBAL    = 0x100,
+	PTE_LV4_GLOBAL    = 0x200,
+	PTE_FRAME     = 0x7FFF000
 };
 
 typedef int pageTableEntry;

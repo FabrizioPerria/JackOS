@@ -100,7 +100,7 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		/* Read the register 5 times to make sure that the error is not related to the latency */
 		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 5))
 			cnt++;
-	
+
 		if(cnt == 5)
 			return 0;
 
@@ -111,64 +111,62 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 			"insw\n"
 			"loop loopIN\n"::"c"(count),"m"(data));
 
-    }else if(ide==2){
-        outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel%2)|((numblock>>24)&0x0F));
-        outPortB(IDE2_SECTOR_CNT_PORT,count);
-        outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
-        outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
-        outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
-        outPortB(IDE2_CMD_PORT,LBA28_READ_COMMAND);
+	}else if(ide==2){
+		outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel%2)|((numblock>>24)&0x0F));
+		outPortB(IDE2_SECTOR_CNT_PORT,count);
+		outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
+		outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
+		outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
+		outPortB(IDE2_CMD_PORT,LBA28_READ_COMMAND);
 		//TODO :the program stucks here if the disk is not found!!!!
 
         /* Read the register 5 times to make sure that the error is not related to the latency */
-        while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 5))
-            cnt++;
-    
-        if(cnt == 5)
-            return 0;
+		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 5))
+			cnt++;
 
-        count*=256;
-        asm("mov %1,%%edi\n"
-            "mov $0x170,%%dx\n"
-            "rep insw\n"::"c"(count),"m"(data));
-        
+		if(cnt == 5)
+			return 0;
+
+		count*=256;
+		asm("mov %1,%%edi\n"
+			"mov $0x170,%%dx\n"
+			"rep insw\n"::"c"(count),"m"(data));
     }
- 
-    return count;
+
+	return count;
 }
 
 int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)
 {
-    int ide=(driveSel%2)+1;
-    if(count < 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
-        return -1;
-    if(ide ==1){
-        outPortB(IDE1_TOP4LBA_PORT,0xE0|driveSel|((numblock>>24)&0x0F));
-        outPortB(IDE1_SECTOR_CNT_PORT,count);
-        outPortB(IDE1_ADDR_LOW_PORT,(numblock & 0xFF));
-        outPortB(IDE1_ADDR_MID_PORT,((numblock>>8) & 0xFF));
-        outPortB(IDE1_ADDR_HI_PORT,((numblock>>16)& 0xFF));
-        outPortB(IDE1_CMD_PORT,LBA28_WRITE_COMMAND);
-        while(!(inPortB(IDE1_CMD_PORT) & 0x40));
-        count*=256;
-        asm("mov %1,%%edi\n"
-            "mov $0x1f0,%%dx\n"
-            "rep outsw\n"::"c"(count),"m"(data));
+	int ide=(driveSel%2)+1;
+	if(count < 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
+		return -1;
+	if(ide ==1){
+		outPortB(IDE1_TOP4LBA_PORT,0xE0|driveSel|((numblock>>24)&0x0F));
+		outPortB(IDE1_SECTOR_CNT_PORT,count);
+		outPortB(IDE1_ADDR_LOW_PORT,(numblock & 0xFF));
+		outPortB(IDE1_ADDR_MID_PORT,((numblock>>8) & 0xFF));
+		outPortB(IDE1_ADDR_HI_PORT,((numblock>>16)& 0xFF));
+		outPortB(IDE1_CMD_PORT,LBA28_WRITE_COMMAND);
+		while(!(inPortB(IDE1_CMD_PORT) & 0x40));
+		count*=256;
+		asm("mov %1,%%edi\n"
+			"mov $0x1f0,%%dx\n"
+			"rep outsw\n"::"c"(count),"m"(data));
 
-    }else if(ide==2){
-        outPortB(IDE2_TOP4LBA_PORT,0xE0|driveSel|((numblock>>24)&0x0F));
-        outPortB(IDE2_SECTOR_CNT_PORT,count);
-        outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
-        outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
-        outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
-        outPortB(IDE2_CMD_PORT,LBA28_WRITE_COMMAND);
-        while(!(inPortB(IDE2_CMD_PORT) & 0x40));
-        count*=256;
-        asm("mov %1,%%edi\n"
-            "mov $0x170,%%dx\n"
-            "rep outsw\n"::"c"(count),"m"(data));
-    }
- 
-    return count;
+	}else if(ide==2){
+		outPortB(IDE2_TOP4LBA_PORT,0xE0|driveSel|((numblock>>24)&0x0F));
+		outPortB(IDE2_SECTOR_CNT_PORT,count);
+		outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
+		outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
+		outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
+		outPortB(IDE2_CMD_PORT,LBA28_WRITE_COMMAND);
+		while(!(inPortB(IDE2_CMD_PORT) & 0x40));
+		count*=256;
+		asm("mov %1,%%edi\n"
+			"mov $0x170,%%dx\n"
+			"rep outsw\n"::"c"(count),"m"(data));
+	}
+
+	return count;
 }
-

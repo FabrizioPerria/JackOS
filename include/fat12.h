@@ -5,27 +5,27 @@
 
 /*File Entry Format */
 struct fat12Entry{
-    char name[8];
-    char extension[3];
-    char attribute;
-    int  reserved1;
-    int  reserved2;
-    short reserved3;
-    short time;
-    short date;
-    short startingCluster;
-    int fileSize;
+	char name[8];
+	char extension[3];
+	char attribute;
+	int  reserved1;
+	int  reserved2;
+	short reserved3;
+	short time;
+	short date;
+	short startingCluster;
+	int fileSize;
 }__attribute__((packed));
 
 struct MOUNT_INFO{
-    int numSectors;
+	int numSectors;
 	int sectorSize;
-    int fatPosition;
-    int numRootEntries;
-    int rootPosition;
-    int rootSize;
-    int fatSize;
-    int fatEntrySize;
+	int fatPosition;
+	int numRootEntries;
+	int rootPosition;
+	int rootSize;
+	int fatSize;
+	int fatEntrySize;
 }__attribute__((packed));
 
 void FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length);

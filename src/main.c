@@ -21,7 +21,7 @@ void main(struct multiboot_info *mbootPtr){
 
 	/* In EDX the bootloader writes the size of the kernel */
 	asm("mov %%edx,%0\n" : "=m" (kernelSize):);
-	/* Install tables and interrupts */
+	/* Install tables for segmentation and interrupts */
 	gdt_install();
 	idt_install();
 	isr_install();

@@ -361,6 +361,7 @@ isr_common:
 .extern irq_handler
 
 irq_common:
+#Save the registers
     pushal
     pushl %ds
     pushl %es
@@ -373,8 +374,10 @@ irq_common:
     movl %eax,%es
     movl %eax,%fs
     movl %eax,%gs
+#execute the handler
     movl $irq_handler,%eax
     call *%eax
+#restore the registers
     popl %eax
     popl %gs
     popl %fs

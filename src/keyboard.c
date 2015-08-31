@@ -14,15 +14,15 @@ static unsigned char lastKeyPressed=0;
 static unsigned char *layout=layoutUS;
 
 enum set{
-    SHIFT= 0,
-    ALT_LEFT,
-    ALT_RIGHT,
-    CTRL_LEFT,
-    CTRL_RIGHT,
-    EXTENDED,
-    CAPS,
-    SCROLL,
-    NUM
+	SHIFT= 0,
+	ALT_LEFT,
+	ALT_RIGHT,
+	CTRL_LEFT,
+	CTRL_RIGHT,
+	EXTENDED,
+	CAPS,
+	SCROLL,
+	NUM
 };
 
 /***************************************************
@@ -32,48 +32,47 @@ enum set{
 
 void keyboard_handler(struct registers *regs)
 {
-    unsigned char code=0;
-    
-    (void)regs;			/* Don't check regs
-                                   because i'm not gonna use it!*/
+	unsigned char code=0;
 
-    code=inPortB(KEYBOARD_DATA);
+	(void)regs;			/* Don't check regs because i'm not gonna use it!*/
 
-    if((code & 0x80) == 0){
-        /* Scan code pressed */
-        switch(code){
-        case 0x2A:
-        case 0x36:{
-            /* LEFT/RIGHT SHIFT */
-            flags|=(1<<SHIFT);
-            break;
-        }
-        default:{
-            lastKeyPressed=layout[code+(90*(flags&1))];
-            break;
-        }
-        }
-    } else {
-        /* scan code released */
-        switch(code){
-        case 0xAA:
-        case 0xB6:{
-            /* LEFT/RIGHT SHIFT */
-            flags&=~(1<<SHIFT);
-            break;
-        }
-        default:{
-            break;
-        }
-        }
-    }
+	code=inPortB(KEYBOARD_DATA);
+
+	if((code & 0x80) == 0){
+		/* Scan code pressed */
+		switch(code){
+			case 0x2A:
+			case 0x36:{
+				/* LEFT/RIGHT SHIFT */
+				flags|=(1<<SHIFT);
+				break;
+			}
+			default:{
+				lastKeyPressed=layout[code+(90*(flags&1))];
+				break;
+			}
+		}
+	} else {
+		/* scan code released */
+		switch(code){
+			case 0xAA:
+			case 0xB6:{
+				/* LEFT/RIGHT SHIFT */
+				flags&=~(1<<SHIFT);
+				break;
+			}
+			default:{
+				break;
+			}
+		}
+	}
 }
 
 /*************************************
 * install the keyboard in the system *
 **************************************/
 void keyboard_install(){
-    irq_setHandler(1,&keyboard_handler);
+	irq_setHandler(1,&keyboard_handler);
 }
 
 /****************************************************
@@ -82,27 +81,27 @@ void keyboard_install(){
 
 void setLayout(int l)
 {
-    switch(l){
-    case 0:{
-        layout=layoutUS;
-        break;
-    }
-    case 1:{
-        layout=layoutIT;
-        break;
-    }
-    default:{
-        layout=layoutUS;
-    }
-    }
+	switch(l){
+		case 0:{
+			layout=layoutUS;
+			break;
+		}
+		case 1:{
+			layout=layoutIT;
+			break;
+		}
+		default:{
+			layout=layoutUS;
+		}
+	}
 }
 
 unsigned char getLastKeyPressed()
 {
-    unsigned char tmp;
-    asm("cli");
-    tmp=lastKeyPressed;
-    lastKeyPressed=0;
-    asm("sti");
-    return tmp;
+	unsigned char tmp;
+	asm("cli");
+	tmp=lastKeyPressed;
+	lastKeyPressed=0;
+	asm("sti");
+	return tmp;
 }

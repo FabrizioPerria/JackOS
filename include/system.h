@@ -12,9 +12,9 @@ void outPortB(unsigned short port,unsigned char value);
 
 struct registers
 {
-    unsigned int gs,fs,es,ds;
-    unsigned int edi,esi,ebp,esp,ebx,edx,ecx,eax;		/*pushal result*/
-    unsigned int intNum;
-    unsigned int eip,cs,eflags,useresp,ss;
+	unsigned int gs,fs,es,ds;
+	unsigned int edi,esi,ebp,esp,ebx,edx,ecx,eax;		/*pushal result*/
+	unsigned int intNum;
+	unsigned int eip,cs,eflags,useresp,ss;
 };
 #endif

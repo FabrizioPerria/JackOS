@@ -33,7 +33,7 @@ void main(struct multiboot_info *mbootPtr){
 	VMMinit();
 
 	keyboard_install();
-//	initDisk();
+	initDisk();
 	initScreen();
 	FAT12Init();
 

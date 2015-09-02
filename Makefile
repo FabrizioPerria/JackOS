@@ -8,6 +8,7 @@ LD		= ld
 DD		= dd
 RM		= rm
 OBJCOPY = objcopy
+DD		= dd
 
 #DIRECTORIES DECLARATION
 OBJDIR = ./obj
@@ -15,9 +16,18 @@ SRCDIR = ./src
 ASMDIR = ./asm
 BINDIR = .
 INCLUDEDIR = ./include
+FLOPPYSRCDIR = ./newFloppy
 
 #FILES DECLARATION
 LINKER_FILE = linker.ld
+ZERO   = /dev/zero
+IMAGE  = floppy.img
+MOUNT_POINT = /mnt/floppy
+FLOPPY_STAGE1_BIN   = ${FLOPPYSRCDIR}/stage1.bin
+FLOPPY_STAGE2_BIN   = ${FLOPPYSRCDIR}/stage2.bin
+FLOPPY_STAGE1_OBJ   = ${FLOPPYSRCDIR}/stage1.o
+FLOPPY_STAGE2_OBJ   = ${FLOPPYSRCDIR}/stage2.o
+
 
 OBJS = VBR.o system.o string.o screen.o \
        GDT.o IDT.o ISR.o IRQ.o \
@@ -43,7 +53,28 @@ ASFLAGS = -I ${ASMDIR}/
 CFLAGS = -O2 -g -Wall -Wextra -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c
 LDFLAGS = -T ${LINKER_FILE}
 OBJCOPYFLAGS = --only-keep-debug
+
 all: kernel
+
+floppy:
+	${RM} -f ${IMAGE}
+	${TARGET}${AS} ${FLOPPYSRCDIR}/stage1.s -o ${FLOPPY_STAGE1_OBJ}
+	${TARGET}${AS} ${FLOPPYSRCDIR}/stage2.s -o ${FLOPPY_STAGE2_OBJ}
+	${TARGET}${LD} -Ttext=0x7c00 --oformat=binary ${FLOPPY_STAGE1_OBJ} -o ${FLOPPY_STAGE1_BIN}
+	${DD} if=${ZERO} of=${IMAGE} bs=512 count=2880
+	losetup /dev/loop0 ${IMAGE}
+	${DD} if=${FLOPPY_STAGE1_BIN} of=${IMAGE} conv=notrunc
+	${TARGET}${LD} --oformat=binary ${FLOPPY_STAGE2_OBJ} -o ${FLOPPY_STAGE2_BIN}
+	mount /dev/loop0 /mnt/floppy -t msdos -o "fat=12"
+	cp ${FLOPPY_STAGE2_BIN} /mnt/floppy
+	touch /mnt/floppy/file.txt
+	dmesg > /mnt/floppy/file.txt
+	umount /mnt/floppy
+	losetup -d /dev/loop0
+	${RM} -f ${FLOPPY_STAGE1_OBJ}
+	${RM} -f ${FLOPPY_STAGE2_OBJ}
+	${RM} -f ${FLOPPY_STAGE1_BIN}
+	${RM} -f ${FLOPPY_STAGE2_BIN}
 
 %.o: %.S
 	${TARGET}${AS} ${ASFLAGS} -o ${OBJDIR}/$@ $<

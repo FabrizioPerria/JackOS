@@ -33,9 +33,9 @@ void main(struct multiboot_info *mbootPtr){
 	VMMinit();
 
 	keyboard_install();
-	initDisk();
+//	initDisk();
 	initScreen();
-	//FAT12Init();
+	FAT12Init();
 
 	/* Enable interrupts and execute the terminal */
 	__asm__ __volatile__ ("sti");

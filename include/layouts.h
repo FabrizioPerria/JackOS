@@ -1,7 +1,7 @@
 #ifndef __LAYOUTS_H
 #define __LAYOUTS_H
 
-/* KEYBOARD LAYOUTS *
+/* KEYBOARD LAYOUTS */
 
 /*
 US LAYOUT ARRAY

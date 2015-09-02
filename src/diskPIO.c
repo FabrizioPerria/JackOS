@@ -26,6 +26,7 @@ void initPartitionTable(int currentDrive)
        from byte 446 *address 0x1BE) */
 
 	if(readLBA28(currentDrive,BOOT_SECTOR,1,buffer) > 0){
+		/* TODO: what about FAT12? (Floppy don't have any MBR and partition table....) */
 		memcpy((unsigned char *)pt[currentDrive] ,(buffer+PARTITION_TABLE_OFFSET), 16);
 	} else {
 		memset((unsigned char *)pt[currentDrive], 0 , 16);
@@ -118,7 +119,6 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
 		outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
 		outPortB(IDE2_CMD_PORT,LBA28_READ_COMMAND);
-		//TODO :the program stucks here if the disk is not found!!!!
 
         /* Read the register 5 times to make sure that the error is not related to the latency */
 		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 5))

@@ -89,8 +89,12 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 	if(count <= 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
 		return -1;
 	if(ide ==1){
-		while((inPortB(IDE1_CMD_PORT) & 0x88)!=0);
+		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 5))
+			cnt++;
+		if(cnt == 5)
+			return 0;
 
+		cnt = 0;
 		outPortB(IDE1_TOP4LBA_PORT,0xE0|(driveSel%2)|((numblock>>24)&0x0F));
 		outPortB(IDE1_SECTOR_CNT_PORT,count);
 		outPortB(IDE1_ADDR_LOW_PORT,(numblock & 0xFF));
@@ -113,6 +117,13 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 			"loop loopIN\n"::"c"(count),"m"(data));
 
 	}else if(ide==2){
+        while((inPortB(IDE2_CMD_PORT) & 0x88) && (cnt < 5))
+            cnt++;
+        if(cnt == 5)
+            return 0;
+
+        cnt = 0;
+
 		outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel%2)|((numblock>>24)&0x0F));
 		outPortB(IDE2_SECTOR_CNT_PORT,count);
 		outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));

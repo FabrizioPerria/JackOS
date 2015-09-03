@@ -25,8 +25,16 @@ sectorsPerTrack:     .word 18                    #a floppy has always 18 sectors
 headsPerCylinder:    .word 2
 hiddenSectors:       .long 0
 sectorsBig:          .long 0
+sectorsPerFATBig:    .long 0
+flagsBig:            .word 0
+FATVersionBig:       .word 0
+rootDirBig:          .long 0
+FSInfoLBABig:        .word 0
+BackupVBRLBABig:     .word 0
+unused1:             .long 0
+unused2:             .word 0
 driveNumber:         .byte 0
-unused:              .byte 0
+unused3:             .byte 0
 GDTsignature:        .byte 0x29
 serialNumber:        .long 0xa1a2a3a4
 volumeLabel:         .ascii "FLOPPY DISK"             #length must be 11
@@ -34,12 +42,6 @@ FileSystem:          .ascii "FAT12   "                #length must be 8
  
 ##############################################################################
 #VARIABLES
-    
-#welcomeString:
-#    .asciz "Welcome\r\n"
-
-fileNotFoundString:
-    .asciz "FNF\r\n"
 
 fatLocation:
     .word 0
@@ -131,9 +133,6 @@ _main:
 
     movb $0,%dh
     movw (loadedDrive),%dx
-#    pushw $welcomeString
-#    call print
-#    addw $2,%sp
 
 resetFloppy:
     mov $0,%ax
@@ -209,7 +208,8 @@ cmpFail:
     popw %cx
     addw $0x20,%di                      #otherwise let's try with the next entry
     loop findLoop
-    jmp fileNotFound
+    cli
+    hlt
     
 loadFAT:
     popw %di
@@ -290,11 +290,6 @@ stage2Continue:
     
     jmp $0x50,$0x0
     
-fileNotFound:
-    pushw $fileNotFoundString
-    call print
-    addw $2,%sp
-
 partition_table:
 	.org 446
     #partition entries

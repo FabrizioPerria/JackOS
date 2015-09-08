@@ -50,7 +50,7 @@ vpath %.c   ${SRCDIR}
 
 #FLAGS DECLARATION
 ASFLAGS = -I ${ASMDIR}/
-CFLAGS = -O2 -g -Wall -Wextra -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c
+CFLAGS = -g -Wall -Wextra -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c #-O2
 LDFLAGS = -T ${LINKER_FILE}
 OBJCOPYFLAGS = --only-keep-debug
 
@@ -68,7 +68,9 @@ floppy:
 	mount /dev/loop0 /mnt/floppy -t msdos -o "fat=12"
 	cp ${FLOPPY_STAGE2_BIN} /mnt/floppy
 	touch /mnt/floppy/file.txt
-	dmesg > /mnt/floppy/file.txt
+	ls > /mnt/floppy/file.txt
+	mkdir /mnt/floppy/folder
+	echo "Se stampa questo, i path funzionano" > /mnt/floppy/folder/print.txt
 	umount /mnt/floppy
 	losetup -d /dev/loop0
 	${RM} -f ${FLOPPY_STAGE1_OBJ}

@@ -19,6 +19,7 @@ void FAT12Init()
 	_fs.read = FAT12Read;
 	_fs.close = FAT12Close;
 	_fs.open = FAT12Open;
+	_fs.remove = FAT12Remove;
 
 	registerFS(&_fs,0);
 
@@ -36,12 +37,18 @@ Need a search function to find the first free cluster in the FAT
 	- remember: the clusters don't have to be consecutives
 
 }
-
-void FAT12Delete(FILE file)
-{
-Search a file using the name and set 0 on the pointed clusters 
-}
 */
+void FAT12Remove(const char *filename)
+{
+	/* Search a file using the name and set 0 on the pointed clusters */
+	FILE file = FAT12Directory(filename,NULL);
+
+	if(writeLBA28(0,file.position,23,(unsigned char*)"ciao sto sovrascrivendo") != -1)
+		print("\r\nDeleted %s\r\n",filename);
+}
+
+
+
 void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
 {
 	/* Put the content of the file in the buffer */
@@ -306,7 +313,8 @@ void FAT12Mount()
 {
 	unsigned char bootsectorBuffer[512];
 	struct bpb *bootsector;
-	readLBA28(_currentDevice,0,1,bootsectorBuffer);
+	if(readLBA28(_currentDevice,0,1,bootsectorBuffer) < 1)
+		return;
 	bootsector = (struct bpb*)bootsectorBuffer;
 
 	_mi.numSectors = bootsector->totalSectors;

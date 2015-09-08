@@ -22,7 +22,7 @@
 #define IDE2_CMD_PORT        0x177
 
 #define LBA28_READ_COMMAND 0x20
-#define LBA28_WRITE_COMMAND 0x24
+#define LBA28_WRITE_COMMAND 0x30
 
 void initDisk();
 partitionTableEntry *getPartitionTable(unsigned int drive);

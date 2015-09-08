@@ -183,6 +183,7 @@ void putChar(char c)
 			break;
 		}
 		case '\n':{
+			xCursor = 0;
 			yCursor++;
 			break;
 		}

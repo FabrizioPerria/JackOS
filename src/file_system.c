@@ -35,6 +35,17 @@ FILE openFile(char *fileName,char mode)
 	return file;
 }
 
+void deleteFile(const char *fileName)
+{
+	int fsIndex=0;
+	if(isNumber(fileName[0])){
+		fsIndex = fileName[0]-48;
+		if(fileName != NULL && fileName[1]=='/'){
+			fs[fsIndex]->remove(fileName+2);
+		}
+	}
+}
+
 void readFile(FILE *file,unsigned char *buffer,unsigned int length)
 {
 	int lengthBlocks=0;

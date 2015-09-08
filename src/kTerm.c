@@ -9,7 +9,7 @@
 #include <file_system.h>
 #include <fat12.h>
 
-#define NUM_FUNCTIONS 14
+#define NUM_FUNCTIONS 15
 #define CMD_LENGTH 70
 #define CURSOR_START_XPOS 3
 
@@ -30,6 +30,7 @@ static void kTermChangeForeground();
 static void kTermGetSector(char* sector);
 static void kTermReadFile(char* fileName);
 static void kTermMoreFile(char *filename);
+static void kTermDeleteFile(char *fileName);
 
 struct functionPointer{
 	void (*funcPTR)();
@@ -50,7 +51,8 @@ static struct functionPointer fPtr[NUM_FUNCTIONS]={
 	{ kTermHelp				, "help"		},
 	{ kTermGetSector		, "hexdump"		},
 	{ kTermReadFile			, "read"		},
-	{ kTermMoreFile			, "more"		}
+	{ kTermMoreFile			, "more"		},
+	{ kTermDeleteFile		, "rm"			}
 };
 
 static void getCommand(char *cmd)
@@ -307,6 +309,12 @@ static void kTermGetCpuFeatures()
 	scrollEnable();
 }
 
+static void kTermDeleteFile(char *fileName)
+{
+	deleteFile(fileName);
+}
+
+
 static int run(char *cmd)
 {
 	char *command=strtok(cmd,' ',0);
@@ -333,6 +341,3 @@ void kTerm()
 		run(command);
 	}
 }
-
-
-

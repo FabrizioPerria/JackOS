@@ -45,18 +45,20 @@ partitionTableEntry *getPartitionTable(unsigned int drive)
 /* Find the available drives in the IDE buses */
 void initDisk()
 {
+	char res = 0;
 	outPortB(IDE1_ADDR_LOW_PORT,0x88);
 	if(inPortB(IDE1_ADDR_LOW_PORT) == 0x88){
 		outPortB(IDE1_TOP4LBA_PORT,0xA0);
 
-		if(inPortB(IDE1_CMD_PORT) & 0x40){
+		res = inPortB(IDE1_CMD_PORT);
+		if(res & 0x40){
 			drive[0]=1;
 			initPartitionTable(0);
 		}
 
 		outPortB(IDE1_TOP4LBA_PORT,0xB0);
-
-		if(inPortB(IDE1_CMD_PORT) & 0x40){
+		res = inPortB(IDE1_CMD_PORT);
+		if(res & 0x40){
 			drive[1] = 1;
 			initPartitionTable(1);
 		}
@@ -65,15 +67,15 @@ void initDisk()
 	outPortB(IDE2_ADDR_LOW_PORT,0x88);
 	if(inPortB(IDE2_ADDR_LOW_PORT) == 0x88){
 		outPortB(IDE2_TOP4LBA_PORT,0xA0);
-
-		if(inPortB(IDE2_CMD_PORT) & 0x40){
+		res = inPortB(IDE2_CMD_PORT);
+		if(res & 0x40){
 			drive[2] = 1;
 			initPartitionTable(2);
 		}
 
 		outPortB(IDE2_TOP4LBA_PORT,0xB0);
-
-		if(inPortB(IDE2_CMD_PORT) & 0x40){
+		res = inPortB(IDE2_CMD_PORT);
+		if(res & 0x40){
 			drive[3] = 1;
 			initPartitionTable(3);
 		}
@@ -89,13 +91,13 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 	if(count <= 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
 		return -1;
 	if(ide ==1){
-		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 5))
+		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 10))
 			cnt++;
-		if(cnt == 5)
-			return 0;
+		if(cnt == 10)
+			return -1;
 
 		cnt = 0;
-		outPortB(IDE1_TOP4LBA_PORT,0xE0|(driveSel%2)|((numblock>>24)&0x0F));
+		outPortB(IDE1_TOP4LBA_PORT,0xE0|(driveSel/2)|((numblock>>24)&0x0F));
 		outPortB(IDE1_SECTOR_CNT_PORT,count);
 		outPortB(IDE1_ADDR_LOW_PORT,(numblock & 0xFF));
 		outPortB(IDE1_ADDR_MID_PORT,((numblock>>8) & 0xFF));
@@ -103,11 +105,11 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE1_CMD_PORT,LBA28_READ_COMMAND);
 
 		/* Read the register 5 times to make sure that the error is not related to the latency */
-		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 5))
+		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 10))
 			cnt++;
 
-		if(cnt == 5)
-			return 0;
+		if(cnt == 10)
+			return -1;
 
 		count*=256;
 		asm("mov %1,%%edi\n"
@@ -117,14 +119,14 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 			"loop loopIN\n"::"c"(count),"m"(data));
 
 	}else if(ide==2){
-        while((inPortB(IDE2_CMD_PORT) & 0x88) && (cnt < 5))
+        while((inPortB(IDE2_CMD_PORT) & 0x88) && (cnt < 10))
             cnt++;
-        if(cnt == 5)
-            return 0;
+        if(cnt == 10)
+            return -1;
 
         cnt = 0;
 
-		outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel%2)|((numblock>>24)&0x0F));
+		outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel/2)|((numblock>>24)&0x0F));
 		outPortB(IDE2_SECTOR_CNT_PORT,count);
 		outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
 		outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
@@ -132,16 +134,18 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE2_CMD_PORT,LBA28_READ_COMMAND);
 
         /* Read the register 5 times to make sure that the error is not related to the latency */
-		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 5))
+		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 10))
 			cnt++;
 
-		if(cnt == 5)
-			return 0;
+		if(cnt == 10)
+			return -1;
 
 		count*=256;
 		asm("mov %1,%%edi\n"
 			"mov $0x170,%%dx\n"
-			"rep insw\n"::"c"(count),"m"(data));
+			"loopIN2:\n"
+			"insw\n"
+			"loop loopIN2\n"::"c"(count),"m"(data));
     }
 
 	return count;
@@ -149,34 +153,65 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 
 int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)
 {
-	int ide=(driveSel%2)+1;
+	int ide=(driveSel/2)+1;
+	int cnt = 0;
+
 	if(count < 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
 		return -1;
-	if(ide ==1){
-		outPortB(IDE1_TOP4LBA_PORT,0xE0|driveSel|((numblock>>24)&0x0F));
+	if(ide == 1){
+		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 10))
+			cnt++;
+		if(cnt == 10)
+			return -1;
+
+		cnt = 0;
+
+		outPortB(IDE1_TOP4LBA_PORT,0xE0|(driveSel/2)|((numblock>>24)&0x0F));
 		outPortB(IDE1_SECTOR_CNT_PORT,count);
 		outPortB(IDE1_ADDR_LOW_PORT,(numblock & 0xFF));
 		outPortB(IDE1_ADDR_MID_PORT,((numblock>>8) & 0xFF));
 		outPortB(IDE1_ADDR_HI_PORT,((numblock>>16)& 0xFF));
 		outPortB(IDE1_CMD_PORT,LBA28_WRITE_COMMAND);
-		while(!(inPortB(IDE1_CMD_PORT) & 0x40));
+
+/*		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 10))
+			cnt++;
+
+		if(cnt == 10)
+			return -1;
+*/
 		count*=256;
-		asm("mov %1,%%edi\n"
+		asm("mov %1,%%esi\n"
 			"mov $0x1f0,%%dx\n"
-			"rep outsw\n"::"c"(count),"m"(data));
+			"loopOUT:\n"
+			"outsw\n"
+			"loop loopOUT\n"::"c"(count),"m"(data));
 
 	}else if(ide==2){
-		outPortB(IDE2_TOP4LBA_PORT,0xE0|driveSel|((numblock>>24)&0x0F));
+		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 10))
+			cnt++;
+		if(cnt == 10)
+			return -1;
+
+		cnt = 0;
+
+		outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel/2)|((numblock>>24)&0x0F));
 		outPortB(IDE2_SECTOR_CNT_PORT,count);
 		outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
 		outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
 		outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
 		outPortB(IDE2_CMD_PORT,LBA28_WRITE_COMMAND);
-		while(!(inPortB(IDE2_CMD_PORT) & 0x40));
+		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 10))
+			cnt++;
+
+		if(cnt == 10)
+			return -1;
+
 		count*=256;
-		asm("mov %1,%%edi\n"
+		asm("mov %1,%%esi\n"
 			"mov $0x170,%%dx\n"
-			"rep outsw\n"::"c"(count),"m"(data));
+			"loopOUT2:\n"
+			"outsw\n"
+			"loop loopOUT2\n"::"c"(count),"m"(data));
 	}
 
 	return count;

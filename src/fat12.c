@@ -20,6 +20,7 @@ void FAT12Init()
 	_fs.close = FAT12Close;
 	_fs.open = FAT12Open;
 	_fs.remove = FAT12Remove;
+	_fs.list = FAT12List;
 
 	registerFS(&_fs,0);
 
@@ -38,10 +39,36 @@ Need a search function to find the first free cluster in the FAT
 
 }
 */
+
+FILE *FAT12List(FILE folder)
+{
+
+	/*f = FAT12Directory(folder,NULL);*/
+	static FILE chain[224];
+	int j = 0,phySector;
+	char buffer[512];
+	struct fat12Entry* directory;
+	memset(chain,0,224 * sizeof(FILE));
+	if(folder.flags == FS_DIRECTORY){
+		/* Provide an array of files contained in the folder */
+		for(j = 0;j < 224;j++){
+			chain[j] = FAT12Directory(NULL,j,&folder); 
+		}
+		return chain;
+	}else if(folder.flags == FS_FILE){
+		/* list of a file; provide only the file itself */
+		memcpy(&chain[0],&folder,sizeof(folder));
+		return chain;
+	}else{
+		/* File or folder not found... */
+		return NULL;
+	}
+}
+
 void FAT12Remove(const char *filename)
 {
 	/* Search a file using the name and set 0 on the pointed clusters */
-	FILE file = FAT12Directory(filename,NULL);
+	FILE file = FAT12Directory(filename,-1,NULL);
 
 	if(writeLBA28(0,file.position,23,(unsigned char*)"ciao sto sovrascrivendo") != -1)
 		print("\r\nDeleted %s\r\n",filename);
@@ -93,7 +120,7 @@ void FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 	int nextCluster=0;
 	unsigned char fat[1024];
 
-	if(file){
+	if(file != NULL && buffer != NULL && length > 0){
 		while(!file->eof){
 			phySector = 32 + (file->currentCluster-1);
 			readLBA28(_currentDevice,phySector,1,buffer+(i*512));
@@ -137,15 +164,17 @@ static void name2DOS(const char *fileName, char *dosName)
 	dosName[11]=0;
 }
 
-/* Locate file or directory in the root */
-FILE FAT12Directory(const char *name,FILE *folder)
+/* Locate file or directory or return the n-th file in the folder(if the name of file is not specified */
+FILE FAT12Directory(const char *name, int n, FILE *folder)
 {
 	FILE f;
 	unsigned char buffer[512],fat[1024];
 	char dosName[12],tmpName[12],nameBuf[50];
 	int i,j,k=-1,phySector,FAT_offset,FAT_sector,nextCluster,cnt=1;
 	struct fat12Entry *directory;
-	name2DOS(strtok(name,'/',0),dosName);
+
+	if(name != NULL)
+		name2DOS(strtok(name,'/',0),dosName);
 
 	if(folder == NULL){
 		/*Root directory*/
@@ -155,7 +184,23 @@ FILE FAT12Directory(const char *name,FILE *folder)
 			readLBA28(_currentDevice,(_mi.rootPosition +i),1,buffer);
 			directory = (struct fat12Entry*)buffer;
 			/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
-
+			if(n >= 0 && name == NULL){
+				directory += n;
+				memset((unsigned char *)tmpName,0,12);
+				strcpy(f.name,directory->name,8);
+				strcpy(f.name+strlen(tmpName),directory->extension,3);
+				f.id = 0;
+				f.length = directory->fileSize;
+				f.eof = 0;
+				f.position = directory->startingCluster;
+				f.currentCluster = directory->startingCluster;
+				f.deviceID = _currentDevice;
+				if(directory->attribute == 0x10)
+					f.flags = FS_DIRECTORY;
+				else
+					f.flags = FS_FILE;
+				return f;
+			}
 			for(j=0;j<16;j++){
 				memset((unsigned char *)tmpName,0,12);
 				strcpy(tmpName,directory->name,8);
@@ -177,7 +222,7 @@ FILE FAT12Directory(const char *name,FILE *folder)
 					k=strFindChar(name,'/');
 					strcpy(nameBuf,name,strlen(name));
 					if(k > 0){
-						f=FAT12Directory(substr(nameBuf,k+1,0),&f);
+						f=FAT12Directory(substr(nameBuf,k+1,0),-1,&f);
 					}else if(f.flags == FS_DIRECTORY){
 						while(1){
 							FAT_offset = f.currentCluster * 1.5;
@@ -217,6 +262,23 @@ FILE FAT12Directory(const char *name,FILE *folder)
 
 			directory = (struct fat12Entry*)buffer;
 			/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
+            if(n >= 0 && name == NULL){
+                directory += n;
+                memset((unsigned char *)tmpName,0,12);
+                strcpy(f.name,directory->name,8);
+                strcpy(f.name+strlen(tmpName),directory->extension,3);
+                f.id = 0;
+                f.length = directory->fileSize;
+                f.eof = 0;
+                f.position = directory->startingCluster;
+                f.currentCluster = directory->startingCluster;
+                f.deviceID = _currentDevice;
+                if(directory->attribute == 0x10)
+                    f.flags = FS_DIRECTORY;
+                else
+                    f.flags = FS_FILE;
+                return f;
+            }
 
 			for(j=0;j<16;j++){
 				memset((unsigned char *)tmpName,0,12);
@@ -238,7 +300,7 @@ FILE FAT12Directory(const char *name,FILE *folder)
 
 					k=strFindChar(name,'/');
 					if(k > 0){
-						f=FAT12Directory(substr(name,k,strlen(name)),&f);
+						f=FAT12Directory(substr(name,k,strlen(name)),-1,&f);
 					}else if(f.flags == FS_DIRECTORY){
 						while(1){
 							FAT_offset = f.currentCluster * 1.5;
@@ -291,7 +353,12 @@ FILE FAT12Directory(const char *name,FILE *folder)
 /* Return a reference of a file or returns a file with FS_FILE_INVALID flag set if not found */
 FILE FAT12Open(const char *name)
 {
-	FILE file = FAT12Directory(name,NULL);
+	FILE file;
+	if(name == NULL){
+		file.flags = FS_FILE_INVALID;
+		return file;
+	}
+	file = FAT12Directory(name,-1,NULL);
 
 	if(file.flags != FS_FILE && file.flags != FS_DIRECTORY){
 		/*File not found */
@@ -327,3 +394,4 @@ void FAT12Mount()
 
 	_mi.rootSize = (bootsector->maxNumberEntriesRoot *32) / bootsector->bytesPerSector;
 }
+

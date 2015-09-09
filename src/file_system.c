@@ -75,6 +75,20 @@ void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 	}*/
 }
 
+void listFile(const char *folder)
+{
+	int numElements = 0;
+	FILE folderFile = openFile(folder,'r');
+	if(folderFile.flags == FS_FILE_INVALID){
+		print("Cannot find %s\r\n",folder);
+		return;
+	}
+	numElements = fs[folderFile.deviceID]->list(folderFile);
+	while(numElements > 0){
+		print("QUI\r\n");
+	}
+}
+
 void closeFile(FILE *file)
 {
 	if(file!= NULL){

@@ -31,10 +31,11 @@ struct MOUNT_INFO{
 void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void FAT12Init();
-FILE FAT12Directory(const char *dirName,FILE* folder);
+FILE FAT12Directory(const char *dirName,int n,FILE* folder);
 FILE FAT12Open(const char *fileName);
 void FAT12Close(FILE_PTR file);
 void FAT12Mount();
 void FAT12Remove(const char *fileName);
+FILE *FAT12List(FILE folder);
 
 #endif

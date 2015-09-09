@@ -19,9 +19,10 @@ typedef struct _FILE{
 
 typedef struct _FILESYSTEM{
 	char name[8];
-	FILE (*Directory)(const char *directoryName,FILE* folder);
+	FILE (*Directory)(const char *directoryName,int n,FILE* folder);
 	void (*mount)();
 	void (*remove)(const char *fileName);
+	FILE_PTR (*list)(FILE folder);
 	void (*read)(FILE_PTR file,unsigned char *buffer,unsigned int length);
 	void (*close)(FILE_PTR file);
 	FILE (*open)(const char *fileName);
@@ -34,5 +35,6 @@ void closeFile(FILE_PTR file);
 void registerFS(FILESYSTEM_PTR newFS,int deviceId);
 void unregisterFS(unsigned int deviceID);
 void deleteFile(const char *fileName);
+void listFile(const char *folder);
 
 #endif

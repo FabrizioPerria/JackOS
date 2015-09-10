@@ -48,6 +48,7 @@ void keyboard_handler(struct registers *regs)
 				break;
 			}
 			default:{
+				while(lastKeyPressed);
 				lastKeyPressed=layout[code+(90*(flags&1))];
 				break;
 			}

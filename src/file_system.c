@@ -16,17 +16,14 @@ static int isNumber(char c)
 FILE openFile(char *fileName,char mode)
 {
 	FILE file;
-	int fsIndex;
 	if(isNumber(fileName[0])){
-		fsIndex = fileName[0]-48;
 		if(fileName != NULL && fileName[1]=='/'){
-			file=fs[fsIndex]->open(fileName+2);
+			file=fs[fileName[0]-48]->open(fileName);
 
 			if(file.flags == FS_FILE_INVALID && mode == 'w'){
 				/*Create a file*/
 			}
 
-			file.deviceID=fsIndex;
 			file.mode = mode;
 			return file;
 		}
@@ -75,18 +72,20 @@ void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 	}*/
 }
 
-void listFile(const char *folder)
+void listFile(char *folder)
 {
-	int numElements = 0;
+	FILE *numElements;
 	FILE folderFile = openFile(folder,'r');
 	if(folderFile.flags == FS_FILE_INVALID){
-		print("Cannot find %s\r\n",folder);
+		/*print("Cannot find %s\r\n",folder);*/
 		return;
 	}
+
 	numElements = fs[folderFile.deviceID]->list(folderFile);
-	while(numElements > 0){
+/*	while(numElements > 0){
 		print("QUI\r\n");
-	}
+	}*/
+	(void)numElements;
 }
 
 void closeFile(FILE *file)

@@ -21,5 +21,6 @@ enum keyLed{
 void keyboard_install();
 void setLayout(int l);
 unsigned char getLastKeyPressed();
+void resetKey();
 
 #endif

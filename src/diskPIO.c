@@ -2,6 +2,7 @@
 #include <partitionTable.h>
 #include <system.h>
 #include <screen.h>
+#include <fat12.h>
 #include <timer.h>
 
 #define BOOT_SECTOR 0
@@ -28,6 +29,7 @@ void initPartitionTable(int currentDrive)
 	if(readLBA28(currentDrive,BOOT_SECTOR,1,buffer) > 0){
 		/* TODO: what about FAT12? (Floppy don't have any MBR and partition table....) */
 		memcpy((unsigned char *)pt[currentDrive] ,(buffer+PARTITION_TABLE_OFFSET), 16);
+		FAT12Init(currentDrive);
 	} else {
 		memset((unsigned char *)pt[currentDrive], 0 , 16);
 	}

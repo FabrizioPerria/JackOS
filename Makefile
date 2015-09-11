@@ -50,7 +50,7 @@ vpath %.c   ${SRCDIR}
 
 #FLAGS DECLARATION
 ASFLAGS = -I ${ASMDIR}/
-CFLAGS = -g -Wall -Wextra -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c #-O2
+CFLAGS = -g -Wall -Wextra -Werror -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c #-O2
 LDFLAGS = -T ${LINKER_FILE}
 OBJCOPYFLAGS = --only-keep-debug
 
@@ -132,8 +132,8 @@ virtualMemoryManager.o: physicalMemoryManager.o pageTableEntry.o pageDirectoryEn
 
 kTerm.o:                system.o screen.o string.o keyboard.o cpu.o physicalMemoryManager.o fat12.o kTerm.h
 
-diskPIO.o:		system.o screen.o timer.o diskPIO.h
+diskPIO.o:		system.o screen.o string.o timer.o diskPIO.h
 
 fat12.o:		system.o diskPIO.o screen.o file_system.o fat12.h BPB.h
 
-file_system.o:          system.o file_system.h  
+file_system.o:          system.o string.o file_system.h  

@@ -71,7 +71,6 @@ static void getCommand(char *cmd)
 				/*delete only the command characters */
 				if(getXCursor() > CURSOR_START_XPOS){
 					putChar(0x8);
-					//resetKey();
 					cmd[--i]=0;
 				}
 				break;
@@ -106,10 +105,7 @@ static void getCommand(char *cmd)
 			default:{
 				if(i<CMD_LENGTH){
 					cmd[i++]=c;
-					asm("cli");
 					putChar(c);
-					//resetKey();
-					asm("sti");
 				}
 			}
 		}

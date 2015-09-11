@@ -2,6 +2,7 @@
 #include <partitionTable.h>
 #include <system.h>
 #include <screen.h>
+#include <string.h>
 #include <fat12.h>
 #include <timer.h>
 
@@ -27,7 +28,7 @@ void initPartitionTable(int currentDrive)
        from byte 446 *address 0x1BE) */
 
 	if(readLBA28(currentDrive,BOOT_SECTOR,1,buffer) > 0){
-		/* TODO: what about FAT12? (Floppy don't have any MBR and partition table....) */
+		/* TODO: check file system before loading anything to the structures */
 		memcpy((unsigned char *)pt[currentDrive] ,(buffer+PARTITION_TABLE_OFFSET), 16);
 		FAT12Init(currentDrive);
 	} else {
@@ -48,6 +49,9 @@ partitionTableEntry *getPartitionTable(unsigned int drive)
 void initDisk()
 {
 	char res = 0;
+	initFileSystem();
+	outPortB(0x3F6,4);
+	outPortB(0x3F6,0);
 	outPortB(IDE1_ADDR_LOW_PORT,0x88);
 	if(inPortB(IDE1_ADDR_LOW_PORT) == 0x88){
 		outPortB(IDE1_TOP4LBA_PORT,0xA0);
@@ -92,10 +96,12 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 	int cnt = 0;
 	if(count <= 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
 		return -1;
+	outPortB(0x3F6,4);
+	outPortB(0x3F6,0);
 	if(ide ==1){
-		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 10))
+		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 20))
 			cnt++;
-		if(cnt == 10)
+		if(cnt == 20)
 			return -1;
 
 		cnt = 0;
@@ -107,10 +113,20 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE1_CMD_PORT,LBA28_READ_COMMAND);
 
 		/* Read the register 5 times to make sure that the error is not related to the latency */
-		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 10))
+		/*while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 20))
 			cnt++;
 
-		if(cnt == 10)
+		if(cnt == 20)
+			return -1;*/
+
+		while((inPortB(IDE1_CMD_PORT) & 0x80)!= 0 && (cnt < 20))
+			cnt++;
+		if(cnt == 20)
+			return -1;
+		cnt = 0;
+		while((inPortB(IDE1_CMD_PORT) & 0x40)!=0x40 && (cnt < 20))
+			cnt++;
+		if(cnt == 20)
 			return -1;
 
 		count*=256;
@@ -121,9 +137,9 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 			"loop loopIN\n"::"c"(count),"m"(data));
 
 	}else if(ide==2){
-        while((inPortB(IDE2_CMD_PORT) & 0x88) && (cnt < 10))
+        while((inPortB(IDE2_CMD_PORT) & 0x88) && (cnt < 20))
             cnt++;
-        if(cnt == 10)
+        if(cnt == 20)
             return -1;
 
         cnt = 0;
@@ -136,11 +152,21 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		outPortB(IDE2_CMD_PORT,LBA28_READ_COMMAND);
 
         /* Read the register 5 times to make sure that the error is not related to the latency */
-		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 10))
+		/*while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 10))
 			cnt++;
 
 		if(cnt == 10)
 			return -1;
+		*/
+		while((inPortB(IDE2_CMD_PORT) & 0x80)!= 0 && (cnt < 20))
+            cnt++;
+        if(cnt == 20)
+            return -1;
+        cnt = 0;
+        while((inPortB(IDE2_CMD_PORT) & 0x40)!=0x40 && (cnt < 20))
+            cnt++;
+        if(cnt == 20)
+            return -1;
 
 		count*=256;
 		asm("mov %1,%%edi\n"
@@ -150,7 +176,7 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 			"loop loopIN2\n"::"c"(count),"m"(data));
     }
 
-	return count;
+	return strlen((char *)data);
 }
 
 int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)

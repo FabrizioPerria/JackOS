@@ -1,5 +1,6 @@
 #include <file_system.h>
 #include <system.h>
+#include <string.h>
 
 #define MAX_DEVICES 8
 
@@ -13,11 +14,18 @@ static int isNumber(char c)
 	return ((c >= '0') && (c <= '9'));
 }
 
+void initFileSystem()
+{
+	int i = 0;
+	for(i=0;i<MAX_DEVICES;i++)
+		fs[i]->present = 0;
+}
+
 FILE openFile(char *fileName,char mode)
 {
 	FILE file;
 	if(isNumber(fileName[0])){
-		if(fileName != NULL && fileName[1]=='/'){
+		if(fileName != NULL && fileName[1]=='/' && fs[fileName[0]-48]->present){
 			file=fs[fileName[0]-48]->open(fileName);
 
 			if(file.flags == FS_FILE_INVALID && mode == 'w'){
@@ -72,20 +80,28 @@ void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 	}*/
 }
 
-void listFile(char *folder)
+FILE *listFile(char *folder)
 {
-	FILE *numElements;
-	FILE folderFile = openFile(folder,'r');
+	FILE *numElements = NULL;
+	FILE folderFile;
+
+	if(folder == NULL)
+		return numElements;
+
+	if(folder[strlen(folder)-1] == '/')
+		folder[strlen(folder)-1] = 0;
+
+	folderFile = openFile(folder,'r');
 	if(folderFile.flags == FS_FILE_INVALID){
 		/*print("Cannot find %s\r\n",folder);*/
-		return;
+		return numElements;
 	}
 
 	numElements = fs[folderFile.deviceID]->list(folderFile);
 /*	while(numElements > 0){
 		print("QUI\r\n");
 	}*/
-	(void)numElements;
+	return numElements;
 }
 
 void closeFile(FILE *file)
@@ -100,6 +116,7 @@ void registerFS(FILESYSTEM_PTR newFS,int deviceId)
 {
 	static int i = 0;
 	if(i < MAX_DEVICES && newFS){
+		fs[deviceId]->present = 1;
 		fs[deviceId]=newFS;
 		i++;
 	}

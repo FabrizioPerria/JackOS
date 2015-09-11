@@ -19,7 +19,7 @@ void FAT12Init(int drive)
 	_fs.open = FAT12Open;
 	_fs.remove = FAT12Remove;
 	_fs.list = FAT12List;
-
+	_fs.present = 1;
 	registerFS(&_fs,0);
 
 	FAT12Mount(drive);
@@ -43,9 +43,10 @@ FILE *FAT12List(FILE folder)
 
 	/*f = FAT12Directory(folder,NULL);*/
 	static FILE chain[224];
-	int j = 0,phySector;
-	char buffer[512];
-	struct fat12Entry* directory;
+	int j = 0;
+	/*int phySector;*/
+	/*char buffer[512];*/
+	/*struct fat12Entry* directory;*/
 	memset((unsigned char *)chain,0,224 * sizeof(FILE));
 	if(folder.flags == FS_DIRECTORY){
 		/* Provide an array of files contained in the folder */
@@ -81,7 +82,7 @@ void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
 	int phySector=0;
 	int FAT_offset=0,FAT_sector=0;
 	int nextCluster=0;
-	unsigned char *fat;
+	unsigned char *fat = NULL;
 
 	if(file){
 		while(i<length){
@@ -179,14 +180,18 @@ FILE FAT12Directory(int drive, const char *name, int n, FILE *folder)
 		/* 224 entries of 32 Bytes in the root directory with sectors of 512 bytes
 	    Num_sectors_root = (224*32)/512 = 14 sectors for the root directory */
 		for(i=0;i<14;i++){
-			readLBA28(drive,(_mi.rootPosition +i),1,buffer);
+			if(readLBA28(drive,(_mi.rootPosition +i),1,buffer) < 1){
+		        /* Impossible to find a file */
+				f.flags = FS_FILE_INVALID;
+				return f;
+			}
 			directory = (struct fat12Entry*)buffer;
 			/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
 			if(n >= 0 && name == NULL){
 				directory += n;
 				memset((unsigned char *)tmpName,0,12);
 				strcpy(f.name,directory->name,8);
-				strcpy(f.name+strlen(tmpName),directory->extension,3);
+				strcpy(f.name+strlen(f.name),directory->extension,3);
 				f.id = 0;
 				f.length = directory->fileSize;
 				f.eof = 0;
@@ -256,7 +261,11 @@ FILE FAT12Directory(int drive, const char *name, int n, FILE *folder)
 		while(1){
 			/* Go through directories */
 			phySector = 32 + (folder->currentCluster-1);
-			readLBA28(drive,phySector,1,buffer);
+			if(readLBA28(drive,phySector,1,buffer) < 1){
+		        /* Impossible to find a file */
+				f.flags = FS_FILE_INVALID;
+				return f;
+			}
 
 			directory = (struct fat12Entry*)buffer;
 			/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
@@ -264,7 +273,7 @@ FILE FAT12Directory(int drive, const char *name, int n, FILE *folder)
                 directory += n;
                 memset((unsigned char *)tmpName,0,12);
                 strcpy(f.name,directory->name,8);
-                strcpy(f.name+strlen(tmpName),directory->extension,3);
+                strcpy(f.name+strlen(f.name),directory->extension,3);
                 f.id = 0;
                 f.length = directory->fileSize;
                 f.eof = 0;
@@ -356,7 +365,7 @@ FILE FAT12Open(const char *name)
 		file.flags = FS_FILE_INVALID;
 		return file;
 	}
-	//TODO: check the first 2 characters of name X/
+
 	file = FAT12Directory(name[0]-48,name+2,-1,NULL);
 
 	if(file.flags != FS_FILE && file.flags != FS_DIRECTORY){

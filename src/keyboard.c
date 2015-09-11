@@ -5,11 +5,14 @@
 #include <IDT.h>
 #include <IRQ.h>
 
+#define BUFKEYLEN 10
 /* KEYBOARD DRIVER IMPLEMENTATION */
 
 static unsigned char flags=0;
 
-static unsigned char lastKeyPressed=0;
+static unsigned char bufferKeys[BUFKEYLEN];
+static int indexPush=0;
+static int indexPop = 0;
 
 static unsigned char *layout=layoutUS;
 
@@ -48,8 +51,9 @@ void keyboard_handler(struct registers *regs)
 				break;
 			}
 			default:{
-				while(lastKeyPressed);
-				lastKeyPressed=layout[code+(90*(flags&1))];
+				if(indexPush >= BUFKEYLEN)
+					indexPush = 0;
+				bufferKeys[indexPush++]=layout[code+(90*(flags&1))];
 				break;
 			}
 		}
@@ -74,6 +78,7 @@ void keyboard_handler(struct registers *regs)
 **************************************/
 void keyboard_install(){
 	irq_setHandler(1,&keyboard_handler);
+	memset((unsigned char*)bufferKeys,0,BUFKEYLEN);
 }
 
 /****************************************************
@@ -101,8 +106,11 @@ unsigned char getLastKeyPressed()
 {
 	unsigned char tmp;
 	asm("cli");
-	tmp=lastKeyPressed;
-	lastKeyPressed=0;
+	tmp = bufferKeys[indexPop];
+	bufferKeys[indexPop++] = 0;
+	if(indexPop >= BUFKEYLEN)
+		indexPop = 0;
 	asm("sti");
+
 	return tmp;
 }

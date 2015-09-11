@@ -19,6 +19,7 @@ typedef struct _FILE{
 
 typedef struct _FILESYSTEM{
 	char name[8];
+	char present;
 	FILE (*Directory)(int drive,const char *directoryName,int n,FILE* folder);
 	void (*mount)(int drive);
 	void (*remove)(const char *fileName);
@@ -29,12 +30,13 @@ typedef struct _FILESYSTEM{
 }FILESYSTEM,*FILESYSTEM_PTR;
 
 
+void initFileSystem();
 FILE openFile(char *fileName,char mode);
 void readFile(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void closeFile(FILE_PTR file);
 void registerFS(FILESYSTEM_PTR newFS,int deviceId);
 void unregisterFS(unsigned int deviceID);
 void deleteFile(const char *fileName);
-void listFile(char *folder);
+FILE* listFile(char *folder);
 
 #endif

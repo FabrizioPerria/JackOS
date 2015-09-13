@@ -18,7 +18,7 @@ FILE openFile(char *fileName,char mode)
 {
 	FILE file;
 	if(isNumber(fileName[0])){
-		if(fileName != NULL && fileName[1]=='/' && fs[fileName[0]-48]->present){
+		if(fileName != NULL && fileName[1]=='/' && fs[fileName[0]-48]->present == 1){
 			file=fs[fileName[0]-48]->open(fileName);
 
 			if(file.flags == FS_FILE_INVALID && mode == 'w'){
@@ -33,13 +33,13 @@ FILE openFile(char *fileName,char mode)
 	return file;
 }
 
-void deleteFile(const char *fileName)
+void deleteFile(char *fileName)
 {
 	int fsIndex=0;
 	if(isNumber(fileName[0])){
 		fsIndex = fileName[0]-48;
 		if(fileName != NULL && fileName[1]=='/'){
-			fs[fsIndex]->remove(fileName+2);
+			fs[fsIndex]->remove(fileName);
 		}
 	}
 }
@@ -81,7 +81,7 @@ FILE *listFile(char *folder)
 	if(folder == NULL)
 		return numElements;
 
-	if(folder[strlen(folder)-1] == '/')
+	if(strlen(folder) > 2 && folder[strlen(folder)-1] == '/')
 		folder[strlen(folder)-1] = 0;
 
 	folderFile = openFile(folder,'r');
@@ -89,7 +89,6 @@ FILE *listFile(char *folder)
 		/*print("Cannot find %s\r\n",folder);*/
 		return numElements;
 	}
-
 	numElements = fs[folderFile.deviceID]->list(folderFile);
 /*	while(numElements > 0){
 		print("QUI\r\n");

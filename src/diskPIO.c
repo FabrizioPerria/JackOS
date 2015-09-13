@@ -80,6 +80,7 @@ void ATA_probe(int driveToProbe)
 	master_slave = (driveToProbe % 2 == 0)? ATA_MASTER : ATA_SLAVE;
 
 	outPortB(ide + ATA_DRIVE_SEL_PORT,master_slave);
+	pio_400ns_delay(ide);
 	outPortB(ide + ATA_SECTOR_CNT_PORT,0);
 	outPortB(ide + ATA_ADDR_LOW_PORT,0);
 	outPortB(ide + ATA_ADDR_MID_PORT,0);
@@ -142,7 +143,7 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		"mov %1,%%edi\n"
 		"loopIN:\n"
 		"insw\n"
-		"loop loopIN\n"::"c"(count),"d"(ide),"m"(data));
+		"loop loopIN\n"::"c"(count),"m"(data),"d"(ide));
 	pio_400ns_delay(ide);
 	asm("sti");
 	return strlen((char *)data);
@@ -178,10 +179,9 @@ int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)
     count*=256;
 
     asm("mov %1,%%esi\n"
-        /*"mov $0x1f0,%%dx\n"*/
         "loopOUT:\n"
         "outsw\n"
-        "loop loopOUT\n"::"c"(count),"d"(ide),"m"(data));
+        "loop loopOUT\n"::"c"(count),"m"(data),"d"(ide));
 
     pio_400ns_delay(ide);
     asm("sti");

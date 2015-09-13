@@ -51,7 +51,7 @@ FILE *FAT12List(FILE folder)
 	if(folder.flags == FS_DIRECTORY){
 		/* Provide an array of files contained in the folder */
 		for(j = 0;j < 224;j++){
-			chain[j] = FAT12Directory(folder.deviceID,NULL,j,&folder); 
+			chain[j] = FAT12Directory(folder.deviceID,NULL,j,&folder);
 		}
 		return chain;
 	}else if(folder.flags == FS_FILE){
@@ -64,10 +64,10 @@ FILE *FAT12List(FILE folder)
 	}
 }
 
-void FAT12Remove(const char *filename)
+void FAT12Remove(char *filename)
 {
 	/* Search a file using the name and set 0 on the pointed clusters */
-	FILE file = FAT12Directory(filename[0]-48,filename,-1,NULL);
+	FILE file = FAT12Directory(filename[0]-48,filename+2,-1,NULL);
 
 	if(writeLBA28(0,file.position,23,(unsigned char*)"ciao sto sovrascrivendo") != -1)
 		print("\r\nDeleted %s\r\n",filename);
@@ -145,7 +145,7 @@ void FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 }
 
 /*Convert a file name into a 8.3 DOS file format name*/
-static void name2DOS(const char *fileName, char *dosName)
+static void name2DOS(char *fileName, char *dosName)
 {
 	int i=0,j=0;
 	if((fileName == NULL) || (strlen(fileName) > 11) || (dosName == NULL))
@@ -163,35 +163,93 @@ static void name2DOS(const char *fileName, char *dosName)
 	dosName[11]=0;
 }
 
+static void FAT12NoSpaces(char *name)
+{
+	int i=0;
+	for(i=0;i<=strlen(name);i++){
+		if(name[i] <= ' ')	name[i] = 0;
+	}
+}
+
 /* Locate file or directory or return the n-th file in the folder(if the name of file is not specified */
-FILE FAT12Directory(int drive, const char *name, int n, FILE *folder)
+FILE FAT12Directory(int drive, char *name, int n, FILE *folder)
 {
 	FILE f;
 	unsigned char buffer[512],fat[1024];
-	char dosName[12],tmpName[12],nameBuf[50];
-	int i,j,k=-1,phySector,FAT_offset,FAT_sector,nextCluster,cnt=1;
+	char dosName[12],tmpName[12],bufName[50];
+	int i=0,j,k=-1,phySector,FAT_offset,FAT_sector,nextCluster,cnt=1;
 	struct fat12Entry *directory;
 
-	if(name != NULL){
+	if(name[0] == ' ' || name[0] == 0){
+            strcpy(f.name,"drive",8);
+            f.id = 0;
+            f.length = _mi.numSectors * _mi.sectorSize;
+            f.eof = 0;
+            f.position = _mi.rootPosition;
+            f.currentCluster = _mi.rootPosition;
+            f.deviceID = drive;
+            f.flags = FS_DIRECTORY;
+            return f;
+	}
+
+	if(name != NULL && name[0] != 0){
 		name2DOS(strtok(name,'/',0),dosName);
 	}
-	if(folder == NULL){
-		/*Root directory*/
-		/* 224 entries of 32 Bytes in the root directory with sectors of 512 bytes
-	    Num_sectors_root = (224*32)/512 = 14 sectors for the root directory */
-		for(i=0;i<14;i++){
-			if(readLBA28(drive,(_mi.rootPosition +i),1,buffer) < 1){
-		        /* Impossible to find a file */
+
+
+	while(1){
+		if(folder == NULL || folder->position == _mi.rootPosition){
+	        /*Root directory*/
+	        /* 224 entries of 32 Bytes in the root directory with sectors of 512 bytes
+    	    Num_sectors_root = (224*32)/512 = 14 sectors for the root directory */
+
+			if(i < 14){
+				phySector = _mi.rootPosition + i;
+				i++;
+			}else{
 				f.flags = FS_FILE_INVALID;
 				return f;
 			}
-			directory = (struct fat12Entry*)buffer;
-			/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
-			if(n >= 0 && name == NULL){
-				directory += n;
-				memset((unsigned char *)tmpName,0,12);
-				strcpy(f.name,directory->name,8);
+		}else{
+			/* Go through directories */
+			phySector = 32 + (folder->currentCluster-1);
+    	}
+
+		if(readLBA28(drive,phySector,1,buffer) < 1){
+			f.flags = FS_FILE_INVALID;
+			return f;
+		}
+		directory = (struct fat12Entry*)buffer;
+
+		if(n >= 0 && name == NULL){
+			directory += n;
+			memset((unsigned char *)f.name,0,FILENAME_LENGTH);
+			strcpy(f.name,directory->name,8);
+			FAT12NoSpaces(f.name);
+			if(directory->attribute != 0x10){
+				f.name[strlen(f.name)]='.';
 				strcpy(f.name+strlen(f.name),directory->extension,3);
+			}
+			f.id = 0;
+			f.length = directory->fileSize;
+			f.eof = 0;
+			f.position = directory->startingCluster;
+			f.currentCluster = directory->startingCluster;
+			f.deviceID = drive;
+			if(directory->attribute == 0x10)
+				f.flags = FS_DIRECTORY;
+			else
+				f.flags = FS_FILE;
+			return f;
+		}
+		/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
+
+		for(j=0;j<16;j++){
+			memset((unsigned char *)tmpName,0,12);
+			strcpy(tmpName,directory->name,8);
+			strcpy(tmpName+strlen(tmpName),directory->extension,3);
+			if(!strncmp(tmpName,dosName,strlen(tmpName))){
+				strcpy(f.name,name,strlen(tmpName));
 				f.id = 0;
 				f.length = directory->fileSize;
 				f.eof = 0;
@@ -202,163 +260,50 @@ FILE FAT12Directory(int drive, const char *name, int n, FILE *folder)
 					f.flags = FS_DIRECTORY;
 				else
 					f.flags = FS_FILE;
-				return f;
-			}
-			for(j=0;j<16;j++){
-				memset((unsigned char *)tmpName,0,12);
-				strcpy(tmpName,directory->name,8);
-				strcpy(tmpName+strlen(tmpName),directory->extension,3);
 
-				if(!strncmp(tmpName,dosName,strlen(tmpName))){
-					strcpy(f.name,name,strlen(name));
-					f.id = 0;
-					f.length = directory->fileSize;
-					f.eof = 0;
-					f.position = directory->startingCluster;
-					f.currentCluster = directory->startingCluster;
-					f.deviceID = drive;
-					if(directory->attribute == 0x10)
-						f.flags = FS_DIRECTORY;
+				k=strFindChar(name,'/');
+
+				if(k > 0){
+					strcpy(bufName,name,50);
+					if(folder == NULL)
+						f=FAT12Directory(drive,substr(bufName,k+1,0),-1,&f);
 					else
-						f.flags = FS_FILE;
+						f=FAT12Directory(drive,substr(bufName,k,strlen(name)),-1,&f);
 
-					k=strFindChar(name,'/');
-					strcpy(nameBuf,name,strlen(name));
-					if(k > 0){
-						f=FAT12Directory(drive,substr(nameBuf,k+1,0),-1,&f);
-					}else if(f.flags == FS_DIRECTORY){
-						while(1){
-							FAT_offset = f.currentCluster * 1.5;
-							FAT_sector = 1 + (FAT_offset/_mi.sectorSize);
-							readLBA28(drive,FAT_sector,2,fat);
-							nextCluster = fat[FAT_offset % _mi.sectorSize]+
-								(fat[(FAT_offset%_mi.sectorSize)+1]*0x100);
-
-							if(f.currentCluster %2){
-								nextCluster =(nextCluster & 0xFFF0) >> 4;
-							}else{
-								nextCluster &=0x0FFF;
-							}
-							if((nextCluster == 0) ||(nextCluster >= 0xff8)){
-								f.length=cnt*512;
-								f.currentCluster = directory->startingCluster;
-								break;
-							}else{
-								cnt++;
-								f.currentCluster = nextCluster;
-							}
+				}else if(f.flags == FS_DIRECTORY){
+					while(1){
+						FAT_offset = f.currentCluster * 1.5;
+						FAT_sector = 1 + (FAT_offset/_mi.sectorSize);
+						readLBA28(drive,FAT_sector,2,fat);
+						nextCluster = fat[FAT_offset % _mi.sectorSize]+
+							(fat[(FAT_offset%_mi.sectorSize)+1]*0x100);
+						if(f.currentCluster %2){
+							nextCluster =(nextCluster & 0xFFF0) >> 4;
+						}else{
+							nextCluster &=0x0FFF;
+						}
+						if((nextCluster == 0) ||(nextCluster >= 0xff8)){
+							f.length=cnt*512;
+							f.currentCluster = directory->startingCluster;
+							break;
+						}else{
+							cnt++;
+							f.currentCluster = nextCluster;
 						}
 					}
-					return f;
 				}
-				directory++;
-			}
-		}
-		/* Impossible to find a file */
-		f.flags = FS_FILE_INVALID;
-		return f;
-	}else{
-		while(1){
-			/* Go through directories */
-			phySector = 32 + (folder->currentCluster-1);
-			if(readLBA28(drive,phySector,1,buffer) < 1){
-		        /* Impossible to find a file */
-				f.flags = FS_FILE_INVALID;
 				return f;
 			}
-
-			directory = (struct fat12Entry*)buffer;
-			/* Num_root_entries_per_sector = 512 Bytes of sector / 32Bytes of entry = 16 */ 
-            if(n >= 0 && name == NULL){
-                directory += n;
-                memset((unsigned char *)tmpName,0,12);
-                strcpy(f.name,directory->name,8);
-                strcpy(f.name+strlen(f.name),directory->extension,3);
-                f.id = 0;
-                f.length = directory->fileSize;
-                f.eof = 0;
-                f.position = directory->startingCluster;
-                f.currentCluster = directory->startingCluster;
-                f.deviceID = drive;
-                if(directory->attribute == 0x10)
-                    f.flags = FS_DIRECTORY;
-                else
-                    f.flags = FS_FILE;
-                return f;
-            }
-
-			for(j=0;j<16;j++){
-				memset((unsigned char *)tmpName,0,12);
-				strcpy(tmpName,directory->name,8);
-				strcpy(tmpName+strlen(tmpName),directory->extension,3);
-
-				if(!strncmp(tmpName,dosName,strlen(tmpName))){
-					strcpy(f.name,name,strlen(name));
-					f.id = 0;
-					f.length = directory->fileSize;
-					f.eof = 0;
-					f.position = directory->startingCluster;
-					f.currentCluster = directory->startingCluster;
-					f.deviceID = drive;
-					if(directory->attribute == 0x10)
-						f.flags = FS_DIRECTORY;
-					else
-						f.flags = FS_FILE;
-
-					k=strFindChar(name,'/');
-					if(k > 0){
-						f=FAT12Directory(drive,substr(name,k,strlen(name)),-1,&f);
-					}else if(f.flags == FS_DIRECTORY){
-						while(1){
-							FAT_offset = f.currentCluster * 1.5;
-							FAT_sector = 1 + (FAT_offset/_mi.sectorSize);
-							readLBA28(drive,FAT_sector,2,fat);
-							nextCluster = fat[FAT_offset % _mi.sectorSize]+
-								(fat[(FAT_offset%_mi.sectorSize)+1]*0x100);
-
-							if(f.currentCluster %2){
-								nextCluster =(nextCluster & 0xFFF0) >> 4;
-							}else{
-								nextCluster &=0x0FFF;
-							}
-							if((nextCluster == 0) ||(nextCluster >= 0xff8)){
-								f.length=cnt*512;
-								f.currentCluster = directory->startingCluster;
-								break;
-							}else{
-								cnt++;
-								f.currentCluster = nextCluster;
-							}
-						}
-					}
-					return f;
-				}
-				directory++;
-			}
-
-			FAT_offset = folder->currentCluster * 1.5;
-			FAT_sector = 1 + (FAT_offset/_mi.sectorSize);
-			readLBA28(drive,FAT_sector,2,fat);
-			nextCluster = fat[FAT_offset % _mi.sectorSize]+
-				(fat[(FAT_offset%_mi.sectorSize)+1]*0x100);
-
-			if(folder->currentCluster %2){
-				nextCluster =(nextCluster & 0xFFF0) >> 4;
-			}else{
-				nextCluster &=0x0FFF;
-			}
-			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
-				f.eof = 1;
-				f.flags = FS_FILE_INVALID;
-				return f;
-			}
-			f.currentCluster = nextCluster;
+			directory++;
 		}
 	}
+		/* Impossible to find a file */
+	f.flags = FS_FILE_INVALID;
+	return f;
 }
 
 /* Return a reference of a file or returns a file with FS_FILE_INVALID flag set if not found */
-FILE FAT12Open(const char *name)
+FILE FAT12Open(char *name)
 {
 	FILE file;
 	if(name == NULL){

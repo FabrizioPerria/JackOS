@@ -319,8 +319,17 @@ static void kTermDeleteFile(char *fileName)
 
 static void kTermList(char *folder)
 {
-	if(folder != NULL)
-		listFile(folder);
+	FILE * fileList;
+	if(folder != NULL){
+		fileList = listFile(folder);
+		if(fileList != NULL){
+			print("\r\n");
+			while(strlen(fileList->name) != 0){
+				print("%s ",fileList->name);
+				fileList++;
+			}
+		}
+	}
 }
 
 static int run(char *cmd)

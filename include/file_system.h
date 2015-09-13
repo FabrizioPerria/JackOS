@@ -5,8 +5,9 @@
 #define FS_DIRECTORY    1
 #define FS_FILE_INVALID 2
 
+#define FILENAME_LENGTH 32
 typedef struct _FILE{
-	char name[32];
+	char name[FILENAME_LENGTH];
 	int flags;
 	int length;
 	int id;
@@ -20,13 +21,13 @@ typedef struct _FILE{
 typedef struct _FILESYSTEM{
 	char name[8];
 	char present;
-	FILE (*Directory)(int drive,const char *directoryName,int n,FILE* folder);
+	FILE (*Directory)(int drive,char *directoryName,int n,FILE* folder);
 	void (*mount)(int drive);
-	void (*remove)(const char *fileName);
+	void (*remove)(char *fileName);
 	FILE_PTR (*list)(FILE folder);
 	void (*read)(FILE_PTR file,unsigned char *buffer,unsigned int length);
 	void (*close)(FILE_PTR file);
-	FILE (*open)(const char *fileName);
+	FILE (*open)(char *fileName);
 }FILESYSTEM,*FILESYSTEM_PTR;
 
 FILE openFile(char *fileName,char mode);
@@ -34,7 +35,7 @@ void readFile(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void closeFile(FILE_PTR file);
 void registerFS(FILESYSTEM_PTR newFS,int deviceId);
 void unregisterFS(unsigned int deviceID);
-void deleteFile(const char *fileName);
+void deleteFile(char *fileName);
 FILE* listFile(char *folder);
 
 #endif

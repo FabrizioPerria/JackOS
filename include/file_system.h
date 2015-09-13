@@ -29,8 +29,6 @@ typedef struct _FILESYSTEM{
 	FILE (*open)(const char *fileName);
 }FILESYSTEM,*FILESYSTEM_PTR;
 
-
-void initFileSystem();
 FILE openFile(char *fileName,char mode);
 void readFile(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void closeFile(FILE_PTR file);

@@ -14,13 +14,6 @@ static int isNumber(char c)
 	return ((c >= '0') && (c <= '9'));
 }
 
-void initFileSystem()
-{
-	int i = 0;
-	for(i=0;i<MAX_DEVICES;i++)
-		fs[i]->present = 0;
-}
-
 FILE openFile(char *fileName,char mode)
 {
 	FILE file;

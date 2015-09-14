@@ -12,6 +12,7 @@ typedef struct _FILE{
 	int length;
 	int id;
 	int eof;
+	int indexPosition;
 	int position;
 	int currentCluster;
 	int deviceID;

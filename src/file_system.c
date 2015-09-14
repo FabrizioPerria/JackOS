@@ -18,7 +18,7 @@ FILE openFile(char *fileName,char mode)
 {
 	FILE file;
 	if(isNumber(fileName[0])){
-		if(fileName != NULL && fileName[1]=='/' && fs[fileName[0]-48]->present == 1){
+		if(fileName != NULL && fs[fileName[0]-48]->present == 1){
 			file=fs[fileName[0]-48]->open(fileName);
 
 			if(file.flags == FS_FILE_INVALID && mode == 'w'){

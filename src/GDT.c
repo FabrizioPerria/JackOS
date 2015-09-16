@@ -10,6 +10,10 @@ struct gdtEntry
 	unsigned short limit_low;
 	unsigned short base_low;
 	unsigned char base_middle;
+	/* ACCESS:
+		8       7    5        4            3             2  1
+		|PRESENT|RING|ALWAYS 1|CODE SEGMENT|DIRECTION BIT|RW|ACCESS(SET 0)|
+	*/
 	unsigned char access;
 	unsigned char granularity;
 	unsigned char base_high;
@@ -57,8 +61,10 @@ void gdt_install()
 	descriptor and the last one will contain the data dewscriptor */
 
 	gdt_setEntry(0,0,0,0,0);			/* NULL DESCRIPTOR */
-	gdt_setEntry(1,0,0xFFFFFFFF,0x9A,0xCF);     /* CODE DESCRIPTOR */
-	gdt_setEntry(2,0,0xFFFFFFFF,0x92,0xCF);     /* DATA DESCRIPTOR */
+	gdt_setEntry(1,0,0xFFFFFFFF,0x9A,0xCF);     /* SUPERVISOR CODE DESCRIPTOR */
+	gdt_setEntry(2,0,0xFFFFFFFF,0x92,0xCF);     /* SUPERVISOR DATA DESCRIPTOR */
+	gdt_setEntry(3,0,0xFFFFFFFF,0xFA,0xCF);		/*USER CODE DESCRIPTOR */
+	gdt_setEntry(4,0,0xFFFFFFFF,0xF2,0xCF);		/* USER DATA DESCRIPTOR */
 
 /* The flush will install the table on the system */
 /* This function is written in assembly language because we gotta use the lgdt function

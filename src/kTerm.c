@@ -251,9 +251,9 @@ static void kTermReadFile(char *filename)
 		return;
 	}
 	buffer = phy_manager_alloc_blocks(512);
-	for(j = f.length; j>= 0 ; j--){
+	for(j = f.length; j>= 0 ;){
 		memset(buffer,0,512);
-		readFile(&f,buffer,1);
+		j-=readFile(&f,buffer,1);
 		if(f.flags == FS_FILE){
 			print("\r\n%s",buffer);
 		}else if(f.flags == FS_DIRECTORY){

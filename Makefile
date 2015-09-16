@@ -68,7 +68,9 @@ floppy:
 	mount /dev/loop0 /mnt/floppy -t msdos -o "fat=12"
 	cp ${FLOPPY_STAGE2_BIN} /mnt/floppy
 	touch /mnt/floppy/file.txt
-	ls > /mnt/floppy/file.txt
+	dmesg > /mnt/floppy/file.txt
+	dmesg >> /mnt/floppy/file.txt
+	dmesg >> /mnt/floppy/file.txt
 	mkdir /mnt/floppy/folder
 	echo "Se stampa questo, i path funzionano" > /mnt/floppy/folder/print.txt
 	umount /mnt/floppy

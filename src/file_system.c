@@ -2,8 +2,6 @@
 #include <system.h>
 #include <string.h>
 
-#define MAX_DEVICES 8
-
 static FILESYSTEM *fs[MAX_DEVICES];
 
 /* the filename will be with format 
@@ -44,7 +42,7 @@ void deleteFile(char *fileName)
 	}
 }
 
-void readFile(FILE *file,unsigned char *buffer,unsigned int length)
+int readFile(FILE *file,unsigned char *buffer,unsigned int length)
 {
 	int lengthBlocks=0;
 
@@ -53,9 +51,10 @@ void readFile(FILE *file,unsigned char *buffer,unsigned int length)
 			lengthBlocks=length/512;
 			if(length%512 != 0)
 				lengthBlocks++;
-			fs[file->deviceID]->read(file,buffer,lengthBlocks);
+			return fs[file->deviceID]->read(file,buffer,lengthBlocks);
 		}
 	}
+	return 0;
 }
 
 void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
@@ -90,9 +89,7 @@ FILE *listFile(char *folder)
 		return numElements;
 	}
 	numElements = fs[folderFile.deviceID]->list(folderFile);
-/*	while(numElements > 0){
-		print("QUI\r\n");
-	}*/
+
 	return numElements;
 }
 

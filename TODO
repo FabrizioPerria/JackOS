@@ -1,6 +1,6 @@
-fat12directory search over the folders...
+fat12 create and write files or folders
 
-VGA driver
+Super VGA driver
 
 FLOPPY disk driver
 
@@ -10,18 +10,12 @@ signal mechanism
 
 terminal with:
     getMemoryInfo
-    calculator
-    list files in filesystem
-    create and edit a file or a folder
     executing tasks
-
-mouse driver???????
-
-windows????????????
 
 ***********************************************************************************
 AFTER...............
 
+mouse driver
 bootloader
 USB stack
 TCP/IP stack

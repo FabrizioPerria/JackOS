@@ -39,6 +39,6 @@ void closeFile(FILE_PTR file);
 void registerFS(FILESYSTEM_PTR newFS,int deviceId);
 void unregisterFS(unsigned int deviceID);
 void deleteFile(char *fileName);
-FILE* listFile(char *folder);
+FILE* listFile(char *folder,int *numElements);
 
 #endif

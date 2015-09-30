@@ -72,7 +72,7 @@ void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 	}*/
 }
 
-FILE *listFile(char *folder)
+FILE *listFile(char *folder,int *maxItems)
 {
 	FILE *numElements = NULL;
 	FILE folderFile;
@@ -89,7 +89,7 @@ FILE *listFile(char *folder)
 		return numElements;
 	}
 	numElements = fs[folderFile.deviceID]->list(folderFile);
-
+	*maxItems = folderFile.length;
 	return numElements;
 }
 

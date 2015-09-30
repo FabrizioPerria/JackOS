@@ -240,8 +240,7 @@ static void kTermGetSector(char *sector)
 static void kTermReadFile(char *filename)
 {
 	unsigned char *buffer;
-	struct fat12Entry *dir;
-	int i=0,j=0;
+	int j=0;
 	FILE f;
 	scrollEnable();
 	f=openFile(filename,'r');
@@ -249,23 +248,16 @@ static void kTermReadFile(char *filename)
 		print("\r\nFile not found...");
 		closeFile(&f);
 		return;
+	} else if (f.flags== FS_DIRECTORY){
+		print("\r\n%s is a directory");
+		closeFile(&f);
+		return;
 	}
 	buffer = phy_manager_alloc_blocks(512);
 	for(j = f.length; j>= 0 ;){
 		memset(buffer,0,512);
 		j-=readFile(&f,buffer,1);
-		if(f.flags == FS_FILE){
-			print("\r\n%s",buffer);
-		}else if(f.flags == FS_DIRECTORY){
-			dir = (struct fat12Entry*)buffer;
-			for(i=0;i<31;i++){
-				if(dir->name[0] != 0 && dir->name[0] != '.'){
-					/* file's name */
-					print("\r\n%s.%s ",strtok(dir->name,' ',0),substr(dir->name,8,11));
-				}
-				dir++;
-			}
-		}
+		print("\r\n%s",buffer);
 	}
 	phy_manager_dealloc_blocks(buffer,512);
 	closeFile(&f);
@@ -284,8 +276,11 @@ void kTermMoreFile(char *filename)
 		print("\r\nFile not found...");
 		closeFile(&f);
 		return;
+	}else if(f.flags == FS_DIRECTORY){
+		print("\r\n%s is a directory");
+		closeFile(&f);
+		return;
 	}
-
 	readFile(&f,buffer,f.length);
 	if(f.flags == FS_FILE){
 		print("\r\n%s",buffer);
@@ -323,12 +318,15 @@ static void kTermList(char *folder)
 {
 	/* TODO: list all the elements until the first NULL */
 	FILE * fileList;
+	int numItems=0,i;
 	if(folder != NULL){
-		fileList = listFile(folder);
+		fileList = listFile(folder,&numItems);
 		if(fileList != NULL){
 			print("\r\n");
-			while(strlen(fileList->name)!= 0 && fileList->flags != FS_FILE_INVALID){
-				print("%s ",fileList->name);
+			for (i=0; i < numItems; i++){
+				if(strlen(fileList->name)!= 0 && fileList->flags != FS_FILE_INVALID){
+					print("%s ",fileList->name);
+				}
 				fileList++;
 			}
 		}

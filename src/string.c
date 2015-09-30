@@ -35,7 +35,6 @@ char *strtok(const char* str,char token,unsigned int index){
 			res[j++]=str[i];
 		}
 	}
-
 	return res;
 }
 

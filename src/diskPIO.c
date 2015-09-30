@@ -146,7 +146,7 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		"loop loopIN\n"::"c"(count),"m"(data),"d"(ide));
 	pio_400ns_delay(ide);
 	asm("sti");
-	return strlen((char *)data);
+	return count;/*strlen((char *)data);*/
 }
 
 int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)

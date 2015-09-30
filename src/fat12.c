@@ -8,6 +8,8 @@
 FILESYSTEM _fs;
 struct MOUNT_INFO _mi[MAX_DEVICES];
 
+
+/* Delete the spaces from a string */
 static void FAT12NoSpaces(char *name)
 {
     int i=strlen(name);
@@ -38,7 +40,13 @@ void FAT12Init(int drive)
 
 FILE FAT12Create(char *fileName)
 {
-	char *str;
+	FILE folder;
+	FILE_PTR list;
+	int i,j=1,tmp =0, len=0, nextEntry = 0, nextCluster = 0,pos=0,phySector=0;
+	unsigned char fat[512],buffer[512];
+	char *name;
+	struct fat12Entry *directory;
+
 /*
 create an empty file
 
@@ -47,27 +55,118 @@ Need a search function to find the first free cluster in the FAT
 	- for each element go over the clusters until you find free cluster
 	- remember: the clusters don't have to be consecutives
 */
-	FILE f = FAT12Directory(fileName[0]-48,fileName+2,-1,NULL);
-	if(f.flags != FS_FILE_INVALID)
-		/* If the file already exists, return it! */
-		return f;
 
-	str = strtok(fileName,'/',1);
-	(void)str;
-	return f;
+	/*TODO: if file exists, return the file */
+
+	for (i = 0;; i++){
+		tmp = strlen(strtok(fileName,'/',i));
+		len += tmp;
+		if(fileName[len] == '/'){
+			len++;
+		} else {
+			len -= tmp - 1;
+			if (len == 2)
+				/* Root folder */
+				folder = FAT12Directory(fileName[0]-48," ",-1,NULL);
+			else
+				folder = FAT12Directory(fileName[0]-48,substr(fileName,2,len-2),-1,NULL);
+
+			if (folder.flags == FS_FILE_INVALID)
+				return folder;
+			break;
+		}
+	}
+	/* folder points to the folder location */
+
+	list = FAT12List(folder);
+
+	while(strlen(list->name) != 0 && list->flags != FS_FILE_INVALID){
+    	list++;
+		pos++;
+    }
+	if(pos == 16){
+		/*expand the folder in the fat */
+	}
+
+	/* Find free cluster in the FAT */
+    for(i = 0; i< 9 ; i++){
+        readLBA28(folder.deviceID,i + _mi[fileName[0]-48].fatPosition ,1,fat);
+
+		/*The first 3 Entries are standard*/
+		nextEntry = 4;
+		while(nextEntry < ((_mi[fileName[0]-48].sectorSize * 8) / 12)){
+			nextCluster = fat[nextEntry % _mi[fileName[0]-48].sectorSize]+
+                            (fat[(nextEntry%_mi[fileName[0]-48].sectorSize)+1]*0x100);
+
+            if(j % 2){
+            	nextCluster =(nextCluster & 0xFFF0) >> 4;
+            }else{
+                nextCluster &=0x0FFF;
+            }
+
+			if(nextCluster == 0){
+				/* Found an available entry */
+				if(nextEntry % 2){
+					fat[nextEntry] |= 0xF0;
+					fat[nextEntry+1] = 0xFF;
+				} else {
+					fat[nextEntry] = 0xFF;
+					fat[nextEntry+1]|= 0xF0;
+				}
+				break;
+			} else {
+				if(j%2)	nextEntry+=2;
+				else nextEntry++;
+			}
+			j++;
+		}
+		if(nextEntry < ((_mi[fileName[0]-48].sectorSize*8) /12)){
+			writeLBA28(fileName[0]-48,(i + _mi[fileName[0] - 48].fatPosition),1,fat);
+			writeLBA28(fileName[0]-48,(i + _mi[fileName[0] - 48].fatPosition + _mi[fileName[0] - 48].fatSize),1,fat);
+			break;
+		}
+	}
+	/* nextEntry is the position in the FAT */
+
+	phySector = 32 + (folder.currentCluster-1);
+
+    phySector += ((pos / sizeof(struct fat12Entry))/_mi[fileName[0]-48].sectorSize);
+
+    readLBA28(fileName[0]-48,phySector,1,buffer);
+
+    directory = (struct fat12Entry*)buffer;
+
+    directory += pos;
+
+	name = substr(fileName,len-1,tmp);
+	strcpy(directory->name,strtok(name,'.',0),8);
+	strcpy(directory->extension,substr(name,strlen(directory->name),3),3);/*TODO: not working */
+	directory->attribute = FS_FILE;
+	directory->startingCluster = nextEntry;
+	directory->fileSize = _mi[fileName[0]-48].sectorSize;
+	/* TODO: time and date to be added */
+
+	/* Write the record */
+	writeLBA28(fileName[0]-48,phySector,1,buffer);
+
+	/* return the file created */
+
+	return folder;	/*TODO: return the file created, not his father */
 }
 
 
 FILE *FAT12List(FILE folder)
 {
-
-	/*f = FAT12Directory(folder,NULL);*/
 	static FILE chain[224];
+	static int i =0;
 	FILE tmp;
 	int j = 0;
-	/*int phySector;*/
-	/*char buffer[512];*/
-	/*struct fat12Entry* directory;*/
+
+	if(i==0){
+		i++;
+		FAT12Create("0/folder/crea.txt");
+	}
+
 	memset((unsigned char *)chain,0,224 * sizeof(FILE));
 	if(folder.flags == FS_DIRECTORY){
 		/* Provide an array of files contained in the folder */
@@ -100,10 +199,7 @@ void FAT12Remove(char *filename)
 	for(i = 0;i<strlen(file.name);i++)
 		file.name[i] = charToUpper(file.name[i]);
 
-	if(readLBA28(file.deviceID,file.indexPosition,1,buffer)<1){
-		print("Cannot find the directory\r\n");
-		return;
-	}
+	readLBA28(file.deviceID,file.indexPosition,1,buffer);
 	directory = (struct fat12Entry*)buffer;
 
 	/* Scan all the directories in the sector to find the file */
@@ -129,10 +225,7 @@ void FAT12Remove(char *filename)
 	while(1){
 		FAT_offset = file.currentCluster * 1.5;
     	FAT_sector = 1 + (FAT_offset/_mi[file.deviceID].sectorSize);
-    	if(readLBA28(file.deviceID,FAT_sector,1,fat) < 1){
-			print("Cannot find the FAT table\r\n");
-			return;
-		}
+    	readLBA28(file.deviceID,FAT_sector,1,fat);
 
         nextCluster = fat[FAT_offset % _mi[file.deviceID].sectorSize]+ (fat[(FAT_offset%_mi[file.deviceID].sectorSize)+1]*0x100);
         if(file.currentCluster %2){
@@ -146,7 +239,7 @@ void FAT12Remove(char *filename)
         }
 
 		writeLBA28(file.deviceID,FAT_sector,1,fat);
-		writeLBA28(file.deviceID,FAT_sector+_mi[file.deviceID].fatSize,2,fat);
+		writeLBA28(file.deviceID,FAT_sector+_mi[file.deviceID].fatSize,1,fat);
 
         if((nextCluster == 0) ||(nextCluster >= 0xff8)){
             file.currentCluster = directory->startingCluster;
@@ -262,6 +355,7 @@ FILE FAT12Directory(int drive, char *name, int n, FILE *folder)
 	int i=0,j,k=-1,phySector,FAT_offset,FAT_sector,nextCluster,cnt=1;
 	struct fat12Entry *directory;
 
+	/* Root folder */
 	if(name[0] == ' ' || name[0] == 0){
 		strcpy(f.name,"drive",8);
 		f.id = 0;
@@ -299,10 +393,8 @@ FILE FAT12Directory(int drive, char *name, int n, FILE *folder)
 		if(n>=0)
 			phySector += ((n * sizeof(struct fat12Entry))/_mi[drive].sectorSize);
 
-		if(readLBA28(drive,phySector,1,buffer) < 1){
-			f.flags = FS_FILE_INVALID;
-			return f;
-		}
+		readLBA28(drive,phySector,1,buffer);
+
 		directory = (struct fat12Entry*)buffer;
 
 		if(n >= 0 && name == NULL){
@@ -419,13 +511,14 @@ void FAT12Close(FILE_PTR file)
 		file->flags = FS_FILE_INVALID;
 }
 
-/* Mount FAT12 file system */
+/*  Mount FAT12 file system: the mount operation consists in saving in the mount info structure the informations about the 
+    file system*/
 int FAT12Mount(int drive)
 {
 	unsigned char bootsectorBuffer[512];
 	struct bpb *bootsector;
-	if(readLBA28(drive,0,1,bootsectorBuffer) < 1)
-		return -1;
+
+	readLBA28(drive,0,1,bootsectorBuffer);
 	bootsector = (struct bpb*)bootsectorBuffer;
 
 	_mi[drive].numSectors = bootsector->totalSectors;
@@ -439,4 +532,3 @@ int FAT12Mount(int drive)
 	_mi[drive].rootSize = (bootsector->maxNumberEntriesRoot *32) / bootsector->bytesPerSector;
 	return _mi[drive].sectorSize;
 }
-

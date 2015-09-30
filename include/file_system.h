@@ -3,9 +3,9 @@
 
 #define MAX_DEVICES 8
 
-#define FS_FILE         0
-#define FS_DIRECTORY    1
-#define FS_FILE_INVALID 2
+#define FS_FILE_INVALID 0
+#define FS_FILE         1
+#define FS_DIRECTORY    2
 
 #define FILENAME_LENGTH 32
 typedef struct _FILE{

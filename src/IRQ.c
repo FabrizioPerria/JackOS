@@ -24,14 +24,18 @@ extern void irq15();
 /* Lookup table for the IRQ routines */
 void (*irqRoutines[16])(struct registers*)={0};
 
-/* Install an handler in the lookup table */
+/*
+* Install an handler in the lookup table
+* irqNum: number of interrupt to register
+* handler: pointer to the handler of the interrupt
+*/
 void irq_setHandler(unsigned int irqNum,void (*handler)(struct registers *))
 {
 	if(handler != NULL && irqNum < 16)
 		irqRoutines[irqNum]=handler;
 }
 
-/* Uninstall an handler from the lookup table */
+/* Uninstall an handler from the lookup table given the number of interrupt*/
 void irq_unsetHandler(unsigned int irqNum)
 {
 	if(irqNum < 16)
@@ -67,7 +71,7 @@ void PIC8259_remap()
         MASTER PIC DATA PORT    0x21
         SLAVE PIC COMMAND PORT  0xA0
         SLAVE PIC DATA PORT     0xA1
-        
+
         ICW1 -> basic function of the PIC:
             A0 = 0
             D7,D6,D5 = Don't care
@@ -76,7 +80,7 @@ void PIC8259_remap()
             D2 = Don't care
             D1 = 0 no cascade | 1 2 PICs in cascade
             D0 = 0 no ICW4 required | 1 ICW4 required
-            
+
         ICW2 -> initial vector number:
             A0 = 1
             D7,D6,d5,D4,D3 = init vector (always multiple of 8)
@@ -86,23 +90,23 @@ void PIC8259_remap()
             MASTER:
                 A0 = 1
                 D7,D6,D5,D4,D3,D2,D1,D0 = lines of interrupt = 1 there's a PIC 8259 | 0 there's a device
-                
+
             SLAVE:
                 A0 = 1
                 D7,D6,D5,D4,D3 = 0
-                D2,D1,D0 = number of interrupt line where the MASTER is connected 
+                D2,D1,D0 = number of interrupt line where the MASTER is connected
 
         ICW4 -> extra features on the PIC
             A0 = 1
             D7,D6,D5 = 0
             D4 = Special Fully Nested (Priority among slaves preserved)
-            D3 = Buffered 
+            D3 = Buffered
             D2 = if D3 == 1 1 means this PIC is the MASTER, 0 means this PIC is the slave
             D1 = activate Automatic end of Interrupt which allows to reset the irq bit right after the request
             D0 = 1 emulate 8086 | 0 emulate 8085
-                    
+
         MAP MASTER TO 32 (right after the ISRs)
-        MAP SLAVE TO 32 + 8 = 40 
+        MAP SLAVE TO 32 + 8 = 40
     */
 
 	outPortB(0x20,0x11);	/* MASTER ICW1 */

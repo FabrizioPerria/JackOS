@@ -10,12 +10,16 @@
 #define PARTITIONS_PER_DISK 4
 #define DISKS_PER_IDE 2
 #define NUM_IDE_CHANNELS 2
+/* Maximum number of disks (not partitions...) that can be registered */
 #define NUM_DISKS (DISKS_PER_IDE * NUM_IDE_CHANNELS)
 
+/* The [partition table should be positioned in the first sector of the disk after the boot code (which must be 
+   limited to 446 bytes*/
 #define PARTITION_TABLE_OFFSET 446
 
 static unsigned char drive[NUM_DISKS]={0};
 
+/* Table with the partitions */
 partitionTableEntry pt[NUM_DISKS][PARTITIONS_PER_DISK];
 
 /* Initialize the pt matrix with the partition table of the all connected hard disks */
@@ -36,6 +40,7 @@ void initPartitionTable(int currentDrive)
 	}
 }
 
+/* Get the register to use to address ide1 or ide2 */
 static int ATA_getPort(int ide){
 	if(ide == 1)
 		return IDE1_PORTS;
@@ -54,6 +59,7 @@ partitionTableEntry *getPartitionTable(unsigned int drive)
 		return NULL;
 }
 
+/* Gives 400ns delay needed for PIO reading */
 static void pio_400ns_delay(int port)
 {
 	inPortB(port + ATA_STATUS_PORT);
@@ -62,6 +68,7 @@ static void pio_400ns_delay(int port)
     inPortB(port + ATA_STATUS_PORT);
 }
 
+/* Reset a PIO controller */
 static void pio_reset(int port)
 {
 	outPortB(port + ATA_CTRL_PORT,PIO_SOFTWARE_RESET);
@@ -102,6 +109,7 @@ void ATA_probe(int driveToProbe)
 	}
 }
 
+/* Initialize all the disks (if present...) */
 void initDisk()
 {
 	int i = 0;
@@ -109,7 +117,12 @@ void initDisk()
 		ATA_probe(i);
 }
 
-/* Read sectors on a disk and put the bytes in the data buffer */
+/* Read sectors on a disk and put the bytes in the data buffer
+* driveSel: drive to read
+* numBlock: which disk block should i read
+* count: number of words to be written
+* data: data to be written
+*/
 
 int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 {
@@ -149,6 +162,12 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 	return count;/*strlen((char *)data);*/
 }
 
+/* Write the content of data in a disk
+* driveSel: drive to write
+* numBlock: in which disk block should i write
+* count: number of words to be written
+* data: data to be written
+*/
 int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)
 {
     int ide=ATA_getPort((driveSel/2)+1);
@@ -188,67 +207,3 @@ int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)
     return strlen((char *)data);
 
 }
-/*	int ide=(driveSel/2)+1;
-	int cnt = 0;
-
-	if(count < 0 || data == NULL || driveSel < 0 || driveSel > 3 || drive[driveSel] == 0)
-		return -1;
-	if(ide == 1){
-		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 10))
-			cnt++;
-		if(cnt == 10)
-			return -1;
-
-		cnt = 0;
-
-		outPortB(IDE1_TOP4LBA_PORT,0xE0|(driveSel/2)|((numblock>>24)&0x0F));
-		outPortB(IDE1_SECTOR_CNT_PORT,count);
-		outPortB(IDE1_ADDR_LOW_PORT,(numblock & 0xFF));
-		outPortB(IDE1_ADDR_MID_PORT,((numblock>>8) & 0xFF));
-		outPortB(IDE1_ADDR_HI_PORT,((numblock>>16)& 0xFF));
-		outPortB(IDE1_CMD_PORT,LBA28_WRITE_COMMAND);
-
-//		while(!(inPortB(IDE1_CMD_PORT) & 0x8) && (cnt < 10))
-//			cnt++;
-
-//		if(cnt == 10)
-//			return -1;
-
-		count*=256;
-		asm("mov %1,%%esi\n"
-			"mov $0x1f0,%%dx\n"
-			"loopOUT:\n"
-			"outsw\n"
-			"loop loopOUT\n"::"c"(count),"m"(data));
-
-	}else if(ide==2){
-		while((inPortB(IDE1_CMD_PORT) & 0x88) && (cnt < 10))
-			cnt++;
-		if(cnt == 10)
-			return -1;
-
-		cnt = 0;
-
-		outPortB(IDE2_TOP4LBA_PORT,0xE0|(driveSel/2)|((numblock>>24)&0x0F));
-		outPortB(IDE2_SECTOR_CNT_PORT,count);
-		outPortB(IDE2_ADDR_LOW_PORT,(numblock & 0xFF));
-		outPortB(IDE2_ADDR_MID_PORT,((numblock>>8) & 0xFF));
-		outPortB(IDE2_ADDR_HI_PORT,((numblock>>16)& 0xFF));
-		outPortB(IDE2_CMD_PORT,LBA28_WRITE_COMMAND);
-		while(!(inPortB(IDE2_CMD_PORT) & 0x8) && (cnt < 10))
-			cnt++;
-
-		if(cnt == 10)
-			return -1;
-
-		count*=256;
-		asm("mov %1,%%esi\n"
-			"mov $0x170,%%dx\n"
-			"loopOUT2:\n"
-			"outsw\n"
-			"loop loopOUT2\n"::"c"(count),"m"(data));
-	}
-
-	return count;
-}
-*/

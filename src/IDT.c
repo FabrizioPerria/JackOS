@@ -22,10 +22,13 @@ struct idt_ptr
 struct idt_ptr idtPtr;
 struct idt_entry idtTable[256];
 
-/******************************
-* Create an entry for the IDT *
-*******************************/
-
+/******************************************
+* Create an entry for the IDT             *
+* indexEntry: index on the table          *
+* base: offset on the table               *
+* kSegment: segment selector in the GDT   *
+* flags                                   *
+*******************************************/
 void idt_setEntry(unsigned char indexEntry,unsigned long base, unsigned short kSegment,unsigned char flags)
 {
 	idtTable[indexEntry].base_low = (base & 0xffff);
@@ -38,7 +41,6 @@ void idt_setEntry(unsigned char indexEntry,unsigned long base, unsigned short kS
 /********************************
 * Install the IDT in the system *
 *********************************/
-
 void idt_install()
 {
 	/* Install the 256-items structure to register the interrupt service routines(ISR) */

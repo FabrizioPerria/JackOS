@@ -10,10 +10,6 @@ struct gdtEntry
 	unsigned short limit_low;
 	unsigned short base_low;
 	unsigned char base_middle;
-	/* ACCESS:
-		8       7    5        4            3             2  1
-		|PRESENT|RING|ALWAYS 1|CODE SEGMENT|DIRECTION BIT|RW|ACCESS(SET 0)|
-	*/
 	unsigned char access;
 	unsigned char granularity;
 	unsigned char base_high;
@@ -30,10 +26,17 @@ struct gdtPtr gdt_ptr;
 
 extern void gdt_flush();
 
-/*****************************
-* Create an entry in the GDT *
-******************************/
 
+/************************************************************************
+* Create an entry in the GDT                                            *
+* numIndex: index to use in the table                                   *
+* base: base address                                                    *
+* limit: size of the segment                                            *
+* access:                                                               *
+* 8       7    5        4            3             2  1                 *
+* |PRESENT|RING|ALWAYS 1|CODE SEGMENT|DIRECTION BIT|RW|ACCESS(SET 0)|   *
+* granularity                                                           *
+*************************************************************************/
 void gdt_setEntry(int numIndex,unsigned long base,unsigned long limit, unsigned char access, unsigned char granularity)
 {
 	/* No more than 3 entries possible */

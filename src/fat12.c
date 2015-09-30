@@ -12,10 +12,10 @@ struct MOUNT_INFO _mi[MAX_DEVICES];
 /* Delete the spaces from a string */
 static void FAT12NoSpaces(char *name)
 {
-    int i=strlen(name);
-    for(;i>=0;i--){
-        if(name[i] <= ' ')  name[i] = 0;
-    }
+	int i=strlen(name);
+	for(;i>=0;i--){
+		if(name[i] <= ' ')  name[i] = 0;
+	}
 }
 
 /* Return the drive given a path */
@@ -164,21 +164,11 @@ Need a search function to find the first free cluster in the FAT
 
 	/* Find free cluster in the FAT */
 	for(i = 0; i< 9 ; i++){
-        readLBA28(drive,i + _mi[drive].fatPosition ,1,fat);
+		readLBA28(drive,i + _mi[drive].fatPosition ,1,fat);
 
 		/*The first 3 Entries are standard*/
 		nextEntry = 4;
 		while(nextEntry < ((_mi[drive].sectorSize * 8) / 12)){
-/*
-			nextCluster = fat[nextEntry % _mi[drive].sectorSize]+
-                            (fat[(nextEntry%_mi[drive].sectorSize)+1]*0x100);
-
-            if(j % 2){
-            	nextCluster =(nextCluster & 0xFFF0) >> 4;
-            }else{
-                nextCluster &=0x0FFF;
-            }
-*/
 			nextCluster = getNextClusterFromFAT(drive,nextEntry,fat);
 			if(nextCluster == 0){
 				/* Found an available entry */
@@ -209,13 +199,13 @@ Need a search function to find the first free cluster in the FAT
 
 	phySector = 32 + (folder.currentCluster-1);
 
-    phySector += ((pos / sizeof(struct fat12Entry))/_mi[drive].sectorSize);
+	phySector += ((pos / sizeof(struct fat12Entry))/_mi[drive].sectorSize);
 
-    readLBA28(drive,phySector,1,buffer);
+	readLBA28(drive,phySector,1,buffer);
 
-    directory = (struct fat12Entry*)buffer;
+	directory = (struct fat12Entry*)buffer;
 
-    directory += pos;
+	directory += pos;
 
 	name = substr(fileName,len-1,tmp);
 	strcpy(directory->name,strtok(name,'.',0),8);
@@ -241,11 +231,12 @@ FILE *FAT12List(FILE folder)
 	static int i =0;
 	FILE tmp;
 	int j = 0,k=0;
-
+/*****************************************************************************/
 	if(i==0){
 		i++;
 		FAT12Create("0/folder/crea.txt");
 	}
+/*****************************************************************************/
 
 	memset((unsigned char *)chain,0,224 * sizeof(FILE));
 	if(folder.flags == FS_DIRECTORY){
@@ -323,19 +314,7 @@ void FAT12Remove(char *filename)
         /*nextCluster = fat[FAT_offset % _mi[file.deviceID].sectorSize]+ 
 (fat[(FAT_offset%_mi[file.deviceID].sectorSize)+1]*0x100); */
         nextCluster = getNextClusterFromFAT(file.deviceID,file.currentCluster,fat);
-/*		if(file.currentCluster %2){
-        	nextCluster =(nextCluster & 0xFFF0) >> 4;
-			fat[(FAT_offset % _mi[file.deviceID].sectorSize)+1] =0x0;
-			fat[FAT_offset % _mi[file.deviceID].sectorSize] &= 0xF;
-        }else{
-        	nextCluster &=0x0FFF;
-			fat[FAT_offset % _mi[file.deviceID].sectorSize] =0x0;
-			fat[(FAT_offset % _mi[file.deviceID].sectorSize)+1] &=0xF0;
-        }
 
-		writeLBA28(file.deviceID,FAT_sector,1,fat);
-		writeLBA28(file.deviceID,FAT_sector+_mi[file.deviceID].fatSize,1,fat);
-*/
 		writeOnFAT(drive,FAT_sector,FAT_offset,file.currentCluster, 0 ,fat);
 
         if((nextCluster == 0) ||(nextCluster >= 0xff8)){

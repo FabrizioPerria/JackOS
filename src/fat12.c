@@ -376,7 +376,7 @@ int FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 	unsigned char fat[512];
 
 	if(file != NULL && buffer != NULL && length > 0){
-		while(!file->eof){
+		while(!file->eof && i < length){
 			j = 32 + (file->currentCluster-1);
 			if(j != phySector){
 				phySector = j;
@@ -395,11 +395,12 @@ int FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 			nextCluster = getNextClusterFromFAT(file->deviceID,file->currentCluster,fat);
 			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
 				file->eof = 1;
-				return _mi[file->deviceID].sectorSize * length;
+				break;
 			}
 			file->currentCluster = nextCluster;
 			i++;
 		}
+		return _mi[file->deviceID].sectorSize * length;
 	}
 	return 0;
 }

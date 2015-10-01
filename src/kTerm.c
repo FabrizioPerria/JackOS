@@ -253,11 +253,12 @@ static void kTermReadFile(char *filename)
 		closeFile(&f);
 		return;
 	}
+	print("\r\n");
 	buffer = phy_manager_alloc_blocks(512);
 	for(j = f.length; j>= 0 ;){
 		memset(buffer,0,512);
 		j-=readFile(&f,buffer,1);
-		print("\r\n%s",buffer);
+		print("%s",buffer);
 	}
 	phy_manager_dealloc_blocks(buffer,512);
 	closeFile(&f);

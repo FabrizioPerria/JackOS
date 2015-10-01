@@ -71,6 +71,7 @@ floppy:
 	dmesg > /mnt/floppy/file.txt
 	dmesg >> /mnt/floppy/file.txt
 	dmesg >> /mnt/floppy/file.txt
+	echo FINITO >> /mnt/floppy/file.txt
 	mkdir /mnt/floppy/folder
 	echo "Se stampa questo, i path funzionano" > /mnt/floppy/folder/print.txt
 	umount /mnt/floppy

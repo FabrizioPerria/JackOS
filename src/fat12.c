@@ -301,19 +301,12 @@ void FAT12Remove(char *filename)
     	strcpy(tmpName,directory->name,8);
     	FAT12NoSpaces(tmpName);
     	if(directory->attribute != 0x10){
-        	tmpName[strlen(tmpName)]='.';
-        	strcpy(tmpName+strlen(tmpName),directory->extension,3);
+			tmpName[strlen(tmpName)]='.';
+			strcpy(tmpName+strlen(tmpName),directory->extension,3);
     	}
 	}
 	/* Use the position declared in the directory to free the FAT entries*/
 	while(1){
-/*		FAT_offset = file.currentCluster * 1.5;
-    	j = 1 + (FAT_offset/_mi[file.deviceID].sectorSize);
-    	if(j != FAT_sector){
-			FAT_sector = j;
-			readLBA28(file.deviceID,FAT_sector,1,fat);
-		}
-*/
 		getFAT(drive,file.currentCluster,&FAT_offset,&FAT_sector,fat);
 
         nextCluster = getNextClusterFromFAT(file.deviceID,file.currentCluster,fat);

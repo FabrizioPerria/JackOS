@@ -51,13 +51,12 @@ static void name2DOS(char *fileName, char *dosName)
 /*get the next Cluster index of a file in the FAT
 * drive: drive which contains the file
 * index: position of the entry in the table
-* fat: array with the fat
 */
-static int getNextClusterFromFAT(int drive, int index, unsigned char *fat)
+static int getNextClusterFromFAT(int drive, int index)
 {
 	int FAT_offset = 0,next = 0;
 	FAT_offset = index * 1.5;
-	next = fat[FAT_offset % _mi[drive].sectorSize] + (fat[FAT_offset % _mi[drive].sectorSize+1]*0x100);
+	next = _mi[drive].fat[FAT_offset] + (_mi[drive].fat[FAT_offset + 1]*0x100);
 	if (index % 2)
 		return (next & 0xFFF0) >> 4;
 	else
@@ -70,39 +69,69 @@ static int getNextClusterFromFAT(int drive, int index, unsigned char *fat)
 * offset: position of the entry to be written in the table
 * index: position of the file
 * value to be written
-* fat: table
 */
-static void writeOnFAT(int drive,int sector,int offset,int index,int value,unsigned char *fat)
+static void writeOnFAT(int drive,int index,int value)
 {
+	int offset = index * 1.5;
 	if(index % 2){
-		fat[(offset % _mi[drive].sectorSize) + 1] = (value & 0xFF0) >> 4;
-		fat[offset % _mi[drive].sectorSize] &=  0xF;
-		fat[offset % _mi[drive].sectorSize] += (value & 0xF) << 4;
+		_mi[drive].fat[offset + 1] = (value & 0xFF0) >> 4;
+		_mi[drive].fat[offset] &=  0xF;
+		_mi[drive].fat[offset] += (value & 0xF) << 4;
 	} else {
-		fat[offset % _mi[drive].sectorSize] = (value & 0xFF);
-		fat[(offset % _mi[drive].sectorSize) + 1] &= 0xF0;
-		fat[(offset % _mi[drive].sectorSize) + 1] += (value >> 8);
+		_mi[drive].fat[offset] = (value & 0xFF);
+		_mi[drive].fat[offset + 1] &= 0xF0;
+		_mi[drive].fat[offset + 1] += (value >> 8);
 	}
 
-	writeLBA28(drive,sector,1,fat);
-	writeLBA28(drive,sector + _mi[drive].fatSize,1,fat);
+	writeLBA28(drive, _mi[drive].fatPosition,9,_mi[drive].fat);
+	writeLBA28(drive, _mi[drive].fatPosition + _mi[drive].fatSize,9,_mi[drive].fat);
 }
 
-/* Calculate and read one sector of the FAT and calculate in which byte is represented the index-th file */ 
-static void getFAT(int drive,int index,int *FAT_offset,int *FAT_sector,unsigned char *fat)
+static int findFreeCluster(int drive)
 {
-	int j=0,off=0;
-	off = index * 1.5;
-	j = 1 + (off/_mi[drive].sectorSize);
-	if(FAT_sector == NULL)
-		readLBA28(drive,j,1,fat);
-	else if ((FAT_sector !=NULL) && (j != *FAT_sector)){
-		*FAT_sector = j;
-		readLBA28(drive,*FAT_sector,1,fat);
-	}
+	int nextEntry = 0, nextCluster = 0, j=0;
 
-	if(FAT_offset!= NULL)
-		*FAT_offset = off;
+	/*The first 3 Entries at the beginning of the table are standard*/
+	nextEntry = 4;
+
+	while(nextEntry < ((_mi[drive].sectorSize * _mi[drive].fatSize * 8) / 12)){
+		nextCluster = getNextClusterFromFAT(drive,nextEntry);
+		if(nextCluster == 0){
+			/*Found an available entry*/ 
+			return nextEntry;
+		} else {
+			if(j%2)
+				nextEntry+=2;
+			else
+				nextEntry++;
+		}
+		j++;
+	}
+	return -1;
+}
+
+
+/*Goes through the chain starting from an offset*/
+static int findLastCluster(int drive,int offset)
+{
+	int j = 0, nextEntry = 0, nextCluster = 0;
+
+	nextEntry = offset;
+
+	while(nextEntry < ((_mi[drive].sectorSize * _mi[drive].fatSize * 8) / 12)){
+		nextCluster = getNextClusterFromFAT(drive,nextEntry);
+		if(nextCluster == 0xFFF){
+			/*Found the last entry of the chain*/
+			return nextEntry;
+		} else {
+			if(j%2)
+				nextEntry+=2;
+			else
+				nextEntry++;
+		}
+		j++;
+	}
+	return -1;
 }
 
 /* Initialize and mount a file system */
@@ -125,24 +154,16 @@ void FAT12Init(int drive)
 	FAT12Mount(drive);
 }
 
-/*Create a file in the path specified */
+/*Create an empty file in the path specified */
 FILE FAT12Create(char *fileName)
 {
 	FILE folder,file;
 	FILE_PTR list;
-	int i,j=1,tmp =0, len=0, nextEntry = 0, nextCluster = 0,pos=0,phySector=0, drive=-1;
-	unsigned char fat[512],buffer[512];
+	int i,j=1,tmp =0, len=0, lastCluster,freeCluster,nextEntry = 0, nextCluster = 0,pos=0,phySector=0, drive=-1;
+	unsigned char buffer[512];
 	unsigned char *time;
 	char *tmpName,name[12];
 	struct fat12Entry *directory;
-/*
-create an empty file
-
-Need a search function to find the first free cluster in the FAT 
-	- check the root directory
-	- for each element go over the clusters until you find free cluster
-	- remember: the clusters don't have to be consecutives
-*/
 
 	drive = getDriveFromPath(fileName);
 	if (drive < 0){
@@ -182,36 +203,38 @@ Need a search function to find the first free cluster in the FAT
 		pos++;
 	}
 
+	/* TODO: test it */
 	if(pos > 0 && (pos % 16 == 0)){
-		/*TODO: expand the folder in the fat */
+		/*expand the folder in the fat */
+		lastCluster = findLastCluster(drive,folder.currentCluster * 1.5);
+		freeCluster = findFreeCluster(drive);
+		writeOnFAT(drive,lastCluster,freeCluster);
+		writeOnFAT(drive,freeCluster,0xFFF);
 	}
 
 	/* Find free cluster in the FAT */
-	for(i = 0; i< 9 ; i++){
-		readLBA28(drive,i + _mi[drive].fatPosition ,1,fat);
 
-		/*The first 3 Entries at the beginning of the table are standard*/
-		if(i==0)
-			nextEntry = 4;
-
-		while(nextEntry < ((_mi[drive].sectorSize * 8) / 12)){
-			nextCluster = getNextClusterFromFAT(drive,nextEntry,fat);
-			if(nextCluster == 0){
-				/* Found an available entry */
-				writeOnFAT(drive,_mi[drive].fatPosition + i, nextEntry*1.5,nextEntry,0xFFF,fat);
-				break;
-			} else {
-				if(j%2)
-					nextEntry+=2;
-				else
-					nextEntry++;
-			}
-			j++;
-		}
-		if(nextEntry < ((_mi[drive].sectorSize*8) /12)){
+	/*The first 3 Entries at the beginning of the table are standard*/
+	nextEntry = 4;
+	while(nextEntry < ((_mi[drive].sectorSize *_mi[drive].fatSize * 8) / 12)){
+		nextCluster = getNextClusterFromFAT(drive,nextEntry);
+		if(nextCluster == 0){
+			/* Found an available entry */
+			writeOnFAT(drive, nextEntry, 0xFFF);
 			break;
+		} else {
+			if(j%2)
+				nextEntry+=2;
+			else
+				nextEntry++;
 		}
+		j++;
 	}
+	if(nextEntry == ((_mi[drive].sectorSize * _mi[drive].fatSize * 8) /12)){
+		file.flags = FS_FILE_INVALID;
+		return file;
+	}
+
 	/* nextEntry is the position in the FAT */
 	if(len > 1){
 		phySector = 32 + (folder.currentCluster-1);
@@ -225,7 +248,7 @@ Need a search function to find the first free cluster in the FAT
 
 	directory = (struct fat12Entry*)buffer;
 
-	directory += (pos%16);
+	directory += pos;
 
 	tmpName = substr(fileName,len+1,strlen(fileName));
 	name2DOS(tmpName,name);
@@ -235,6 +258,7 @@ Need a search function to find the first free cluster in the FAT
 	directory->startingCluster = nextEntry;
 	directory->fileSize = _mi[drive].sectorSize;
 
+	/*TODO: test it */
 	time = getTimeDate();
 	/* time is an array of bytes with the folloing values:
 		    6        5      4    3   2      1      0
@@ -256,13 +280,13 @@ FILE *FAT12List(FILE folder)
 	static FILE chain[224];
 	FILE tmp;
 	int i=0, j = 0, phySector=0,cnt=0,nextCluster=0;
-	unsigned char buffer[512],fat[512];
+	unsigned char buffer[512];
 	struct fat12Entry *directory;
 /*****************************************************************************/
 	static int l=0;
 	if(l==0){
 		l++;
-		FAT12Create("0/folder/crea.txt");
+		FAT12Create("0/crea.txt");
 	}
 /*****************************************************************************/
 
@@ -310,8 +334,7 @@ FILE *FAT12List(FILE folder)
 				tmp.flags = FS_DIRECTORY;
 				cnt = 0;
 				while(1){
-					getFAT(folder.deviceID,tmp.currentCluster,NULL,NULL,fat);
-					nextCluster = getNextClusterFromFAT(folder.deviceID,tmp.currentCluster,fat);
+					nextCluster = getNextClusterFromFAT(folder.deviceID,tmp.currentCluster);
 					if((nextCluster == 0) ||(nextCluster >= 0xff8)){
 						tmp.length=(cnt*512) / sizeof(struct fat12Entry);
 						tmp.currentCluster = directory->startingCluster;
@@ -345,10 +368,10 @@ FILE *FAT12List(FILE folder)
 /* Delete a file */
 void FAT12Remove(char *filename)
 {
-	unsigned char buffer[512],fat[512];
+	unsigned char buffer[512];
 	struct fat12Entry *directory;
 	char tmpName[32];
-	int i=0,FAT_offset=0,FAT_sector=0,nextCluster=0,drive = -1;
+	int i=0,nextCluster=0,drive = -1;
 	FILE file;
 
 	if (filename == NULL)
@@ -389,11 +412,10 @@ void FAT12Remove(char *filename)
 	}
 	/* Use the position declared in the directory to free the FAT entries*/
 	while(1){
-		getFAT(drive,file.currentCluster,&FAT_offset,&FAT_sector,fat);
 
-		nextCluster = getNextClusterFromFAT(file.deviceID,file.currentCluster,fat);
+		nextCluster = getNextClusterFromFAT(file.deviceID,file.currentCluster);
 
-		writeOnFAT(drive,FAT_sector,FAT_offset,file.currentCluster, 0 ,fat);
+		writeOnFAT(drive,file.currentCluster, 0);
 
 		if((nextCluster == 0) ||(nextCluster >= 0xff8)){
 			file.currentCluster = directory->startingCluster;
@@ -416,7 +438,6 @@ void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
 	unsigned int i=0;
 	int phySector=0;
 	int nextCluster=0;
-	unsigned char *fat = NULL;
 
 	if(file != NULL && buffer != NULL && length > 0){
 		/* TODO: length % 512 tells you how much sectors you will need to store the data */
@@ -424,8 +445,7 @@ void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
 			phySector = 32 + (file->currentCluster-1);
 			writeLBA28(file->deviceID,phySector,1,buffer+(i*512));
 
-			getFAT(file->deviceID,file->currentCluster,NULL,NULL,fat);
-			nextCluster = getNextClusterFromFAT(file->deviceID,file->currentCluster,fat);
+			nextCluster = getNextClusterFromFAT(file->deviceID,file->currentCluster);
 			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
 				/* TODO: handle the nextCluster value, maybe you need to increase.....check length to see how much data you 
 					have in the buffer */
@@ -445,7 +465,6 @@ int FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 	unsigned int i=0;
 	int phySector=0,j=0;
 	int nextCluster=0;
-	unsigned char fat[512];
 
 	if(file != NULL && buffer != NULL && length > 0){
 		while(!file->eof && i < length){
@@ -455,9 +474,7 @@ int FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 				readLBA28(file->deviceID,phySector,1,buffer+(i*512));
 			}
 
-			getFAT(file->deviceID,file->currentCluster,NULL,NULL,fat);
-
-			nextCluster = getNextClusterFromFAT(file->deviceID,file->currentCluster,fat);
+			nextCluster = getNextClusterFromFAT(file->deviceID,file->currentCluster);
 			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
 				file->eof = 1;
 				break;
@@ -474,9 +491,9 @@ int FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length)
 FILE FAT12Directory(int drive, char *name, FILE *folder)
 {
 	FILE f;
-	unsigned char buffer[512],fat[512];
+	unsigned char buffer[512];
 	char dosName[12],tmpName[12],bufName[50];
-	int i=0,j,k=-1,phySector,FAT_offset,FAT_sector,nextCluster,cnt=1;
+	int i=0,j,k=-1,phySector,nextCluster,cnt=1;
 	struct fat12Entry *directory;
 
 	if(name != NULL && (name[0] == ' ' || name[0] == 0)){
@@ -548,9 +565,7 @@ FILE FAT12Directory(int drive, char *name, FILE *folder)
 
 				}else if(f.flags == FS_DIRECTORY){
 					while(1){
-						getFAT(drive,f.currentCluster,&FAT_sector,&FAT_offset,fat);
-
-						nextCluster = getNextClusterFromFAT(drive,f.currentCluster,fat);
+						nextCluster = getNextClusterFromFAT(drive,f.currentCluster);
 						if((nextCluster == 0) ||(nextCluster >= 0xff8)){
 							f.length=(cnt*512) / sizeof(struct fat12Entry);
 							f.currentCluster = directory->startingCluster;
@@ -566,7 +581,7 @@ FILE FAT12Directory(int drive, char *name, FILE *folder)
 			directory++;
 		}
 		if(folder != NULL){
-			nextCluster = getNextClusterFromFAT(drive,folder->currentCluster,fat);
+			nextCluster = getNextClusterFromFAT(drive,folder->currentCluster);
 			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
         		break;
         	}else{
@@ -624,5 +639,8 @@ int FAT12Mount(int drive)
 	_mi[drive].rootPosition = (bootsector->numberFATs * bootsector->sectorsPerFAT)+1;
 
 	_mi[drive].rootSize = (bootsector->maxNumberEntriesRoot *32) / bootsector->bytesPerSector;
+
+	readLBA28(drive,_mi[drive].fatPosition ,_mi[drive].fatSize ,_mi[drive].fat);
+
 	return _mi[drive].sectorSize;
 }

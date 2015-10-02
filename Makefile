@@ -137,6 +137,6 @@ kTerm.o:                system.o screen.o string.o keyboard.o cpu.o physicalMemo
 
 diskPIO.o:		system.o screen.o string.o timer.o diskPIO.h
 
-fat12.o:		system.o diskPIO.o screen.o file_system.o fat12.h BPB.h
+fat12.o:		system.o diskPIO.o screen.o file_system.o RTC.o fat12.h BPB.h
 
 file_system.o:          system.o string.o file_system.h  

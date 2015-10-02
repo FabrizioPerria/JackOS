@@ -1,3 +1,4 @@
+#include <RTC.h>
 #include <system.h>
 #include <screen.h>
 #include <fat12.h>
@@ -131,9 +132,9 @@ FILE FAT12Create(char *fileName)
 	FILE_PTR list;
 	int i,j=1,tmp =0, len=0, nextEntry = 0, nextCluster = 0,pos=0,phySector=0, drive=-1;
 	unsigned char fat[512],buffer[512];
-	char *tmpName,name[11];
+	unsigned char *time;
+	char *tmpName,name[12];
 	struct fat12Entry *directory;
-
 /*
 create an empty file
 
@@ -160,12 +161,12 @@ Need a search function to find the first free cluster in the FAT
 		if(fileName[len] == '/'){
 			len++;
 		} else {
-			len -= tmp - 1;
-			if (len == 3)
+			len -= (tmp + 1);
+			if (len == 1)
 				/* Root folder */
 				folder = FAT12Directory(drive," ",NULL);
 			else
-				folder = FAT12Directory(drive,substr(fileName,2,len-2),NULL);
+				folder = FAT12Directory(drive,substr(fileName,2,tmp),NULL);
 
 			if (folder.flags == FS_FILE_INVALID)
 				return folder;
@@ -189,8 +190,10 @@ Need a search function to find the first free cluster in the FAT
 	for(i = 0; i< 9 ; i++){
 		readLBA28(drive,i + _mi[drive].fatPosition ,1,fat);
 
-		/*The first 3 Entries are standard*/
-		nextEntry = 4;
+		/*The first 3 Entries at the beginning of the table are standard*/
+		if(i==0)
+			nextEntry = 4;
+
 		while(nextEntry < ((_mi[drive].sectorSize * 8) / 12)){
 			nextCluster = getNextClusterFromFAT(drive,nextEntry,fat);
 			if(nextCluster == 0){
@@ -210,7 +213,7 @@ Need a search function to find the first free cluster in the FAT
 		}
 	}
 	/* nextEntry is the position in the FAT */
-	if(len > 3){
+	if(len > 1){
 		phySector = 32 + (folder.currentCluster-1);
 	}else {
 		phySector = _mi[drive].rootPosition;
@@ -224,15 +227,21 @@ Need a search function to find the first free cluster in the FAT
 
 	directory += (pos%16);
 
-	tmpName = substr(fileName,len-1,tmp);
+	tmpName = substr(fileName,len+1,strlen(fileName));
 	name2DOS(tmpName,name);
 	strcpy(directory->name,strtok(name,'.',0),8);
 	strcpy(directory->extension,substr(name,strlen(directory->name),3),3);
 	directory->attribute = FS_FILE;
 	directory->startingCluster = nextEntry;
 	directory->fileSize = _mi[drive].sectorSize;
-	/* TODO: time and date to be added */
 
+	time = getTimeDate();
+	/* time is an array of bytes with the folloing values:
+		    6        5      4    3   2      1      0
+		|highYear|lowYear|month|day|hour|minute|seconds|
+	*/
+	directory->time = ((time[2] & 0x1F)<<11)||((time[1] & 0x3F) << 5)||(time[0] & 0x1F);
+	directory->date = (((time[5]-80) & 0x5F) << 9) || ((time[4] & 0xF) << 5) || (time[3] & 0x1F);
 	/* Write the record */
 	writeLBA28(drive,phySector,1,buffer);
 
@@ -249,13 +258,13 @@ FILE *FAT12List(FILE folder)
 	int i=0, j = 0, phySector=0,cnt=0,nextCluster=0;
 	unsigned char buffer[512],fat[512];
 	struct fat12Entry *directory;
-/*****************************************************************************
+/*****************************************************************************/
 	static int l=0;
 	if(l==0){
 		l++;
-		FAT12Create("0/crea.txt");
+		FAT12Create("0/folder/crea.txt");
 	}
-*****************************************************************************/
+/*****************************************************************************/
 
 	memset((unsigned char *)chain,0,224 * sizeof(FILE));
 	if(folder.flags == FS_DIRECTORY){
@@ -555,6 +564,14 @@ FILE FAT12Directory(int drive, char *name, FILE *folder)
 				return f;
 			}
 			directory++;
+		}
+		if(folder != NULL){
+			nextCluster = getNextClusterFromFAT(drive,folder->currentCluster,fat);
+			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
+        		break;
+        	}else{
+        		folder->currentCluster = nextCluster;
+			}
 		}
 	}
 		/* Impossible to find a file */

@@ -31,7 +31,7 @@ struct MOUNT_INFO{
 void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length);
 int  FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void FAT12Init(int drive);
-FILE FAT12Directory(int drive,char *dirName,int n,FILE* folder);
+FILE FAT12Directory(int drive,char *dirName,FILE* folder);
 FILE FAT12Open(char *fileName);
 void FAT12Close(FILE_PTR file);
 int FAT12Mount(int drive);

@@ -24,7 +24,7 @@ typedef struct _FILE{
 typedef struct _FILESYSTEM{
 	char name[8];
 	char present;
-	FILE (*Directory)(int drive,char *directoryName,int n,FILE* folder);
+	FILE (*Directory)(int drive,char *directoryName,FILE* folder);
 	int  (*mount)(int drive);
 	void (*remove)(char *fileName);
 	FILE_PTR (*list)(FILE folder);

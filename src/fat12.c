@@ -144,6 +144,7 @@ void FAT12Init(int drive)
 	_fs.Directory = FAT12Directory;
 	_fs.mount = FAT12Mount;
 	_fs.read = FAT12Read;
+	_fs.write = FAT12Write;
 	_fs.close = FAT12Close;
 	_fs.open = FAT12Open;
 	_fs.remove = FAT12Remove;
@@ -432,30 +433,30 @@ void FAT12Remove(char *filename)
 }
 
 /* Write a file in the disk */
-void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
+int FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length)
 {
 	/* Put the content of the file in the buffer */
 	unsigned int i=0;
 	int phySector=0;
-	int nextCluster=0;
+	int nextCluster=0,freeCluster = 0;
 
 	if(file != NULL && buffer != NULL && length > 0){
-		/* TODO: length % 512 tells you how much sectors you will need to store the data */
 		while(i<length){
 			phySector = 32 + (file->currentCluster-1);
 			writeLBA28(file->deviceID,phySector,1,buffer+(i*512));
 
 			nextCluster = getNextClusterFromFAT(file->deviceID,file->currentCluster);
-			if((nextCluster == 0) ||(nextCluster >= 0xff8)){
-				/* TODO: handle the nextCluster value, maybe you need to increase.....check length to see how much data you 
-					have in the buffer */
-				file->eof = 1;
-				return;
+			if((i+1 < length) && ((nextCluster == 0) ||(nextCluster >= 0xff8))){
+				freeCluster = findFreeCluster(file->deviceID);
+				writeOnFAT(file->deviceID,file->currentCluster,freeCluster);
+				writeOnFAT(file->deviceID,freeCluster,0xFFF);
+				return _mi[file->deviceID].sectorSize * length;
 			}
 			file->currentCluster = nextCluster;
 			i++;
 		}
 	}
+	return 0;
 }
 
 /* Read a file from the disk */

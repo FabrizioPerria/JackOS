@@ -34,7 +34,7 @@ struct MOUNT_INFO{
 	unsigned char fat[FAT12_FAT_SECTORS * FAT12_SECTOR_SIZE];
 }__attribute__((packed));
 
-void FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length);
+int FAT12Write(FILE_PTR file,unsigned char *buffer,unsigned int length);
 int  FAT12Read(FILE_PTR file,unsigned char *buffer,unsigned int length);
 void FAT12Init(int drive);
 FILE FAT12Directory(int drive,char *dirName,FILE* folder);

@@ -29,6 +29,7 @@ typedef struct _FILESYSTEM{
 	void (*remove)(char *fileName);
 	FILE_PTR (*list)(FILE folder);
 	int (*read)(FILE_PTR file,unsigned char *buffer,unsigned int length);
+	int (*write)(FILE_PTR file,unsigned char *buffer, unsigned int length);
 	void (*close)(FILE_PTR file);
 	FILE (*open)(char *fileName);
 }FILESYSTEM,*FILESYSTEM_PTR;

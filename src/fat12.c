@@ -203,7 +203,7 @@ FILE FAT12Create(char *fileName)
 
 	list = FAT12List(folder);
 
-	while(strlen(list->name) != 0 && list->flags != FS_FILE_INVALID){
+	while (strlen(list->name) != 0 && list->flags != FS_FILE_INVALID){
 		list++;
 		pos++;
 	}

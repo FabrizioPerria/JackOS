@@ -10,7 +10,7 @@ static unsigned short *screenPtr=(unsigned short *)(VGA_MEMORY);
 static unsigned short *textPtr=(unsigned short *)(VGA_MEMORY + ((VGA_WIDTH)*10*2));
 static unsigned int xCursor=0;
 static unsigned int yCursor=0;
-static unsigned char color=0x00;
+static unsigned char color=WHITE;
 static int fullscreen=0;
 static int scrollIt=1;
 

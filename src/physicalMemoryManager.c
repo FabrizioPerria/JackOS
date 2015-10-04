@@ -160,9 +160,9 @@ void PHYinit(struct multiboot_info *mbootPtr,int kernelSize)
     /* TODO: Let's assume 10 possible regions of physical memory for now.....) */
 	for(i=0;i<10;i++){
 		if(region[i].type > 4)
-			break;
+			continue;
 		if(i > 0 && region[i].addressLow == 0)
-			break;
+			continue;
 		print("region %d: start: 0x%x length: %x end: %x type: %d\r\n",
 			i, (region[i].addressLow),
 			(region[i].lengthLow ),
@@ -172,4 +172,5 @@ void PHYinit(struct multiboot_info *mbootPtr,int kernelSize)
 			phy_manager_init_region((int*)region[i].addressLow,region[i].lengthLow);
 		}
 	}
+	asm("jmp .");
 }

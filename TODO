@@ -1,4 +1,8 @@
-fat12 create and write files or folders
+bootloader
+
+fat12 to fat32
+
+installer for a disk
 
 Super VGA driver
 
@@ -10,13 +14,13 @@ signal mechanism
 
 terminal with:
     getMemoryInfo
+    USER SPACE
     executing tasks
 
 ***********************************************************************************
 AFTER...............
 
 mouse driver
-bootloader
 USB stack
 TCP/IP stack
 ARM support (raspberry)

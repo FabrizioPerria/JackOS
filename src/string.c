@@ -38,24 +38,23 @@ char *strtok(const char* str,char token,unsigned int index){
 	return res;
 }
 
-char *substr(const char* str,unsigned int start,unsigned int end){
-	static char res[50];
-	unsigned int i=0;
+int substr(const char* str,unsigned int start,unsigned int end, char *res){
+	unsigned int i=start;
 
 	if(str == NULL || strlen(str) < (int)start)
-		return NULL;
+		return 0;
 	if(end < start)
 		end=strlen(str);
-	memset((unsigned char*)res,0,50);
+	memset((unsigned char *)res,0,strlen(str));
 
-	for(i=start;(i<end) && ((i-start)< 50) && (i < (unsigned int)(strlen(str)));i++){
+	for(;(i<end) && ((i-start)< 50) && (i < (unsigned int)(strlen(str)));i++){
 		res[i-start] = str[i];
 		if(str[i]=='\0'){
-			return res;
+			return i - start;
 		}
 	}
 
-	return res;
+	return i - start;
 }
 
 int strncmp(char *str1,char *str2,unsigned int length)
@@ -123,5 +122,5 @@ char charToLower(const char text)
 	if(text >= 'A' && text <= 'Z')
 		return (text+32);                    /*To Lower case */
 	else
-	return text;
+		return text;
 }

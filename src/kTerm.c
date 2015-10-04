@@ -9,7 +9,7 @@
 #include <file_system.h>
 #include <fat12.h>
 
-#define NUM_FUNCTIONS 16
+#define NUM_FUNCTIONS 17
 #define CMD_LENGTH 70
 #define CURSOR_START_XPOS 3
 
@@ -32,6 +32,7 @@ static void kTermReadFile(char* fileName);
 static void kTermMoreFile(char *filename);
 static void kTermDeleteFile(char *fileName);
 static void kTermList(char *folder);
+static void kTermWriteFile(char *name);
 
 struct functionPointer{
 	void (*funcPTR)();
@@ -40,21 +41,22 @@ struct functionPointer{
 
 static struct functionPointer fPtr[NUM_FUNCTIONS]={
 	{ kTermGetCpuVendor		, "cpuVendor"	},
-	{ kTermGetCpuFeatures	, "cpuFeatures"	},
+	{ kTermGetCpuFeatures		, "cpuFeatures"	},
 	{ kTermFullscreen		, "fullscreen"	},
 	{ kTermTitleScreen		, "halfscreen"	},
-	{ kTermChangeBackground	, "background"	},
-	{ kTermChangeForeground	, "foreground"	},
-	{ kTermEcho				, "echo"		},
-	{ kTermClear			, "clear"		},
-	{ kTermExit				, "exit"		},
+	{ kTermChangeBackground		, "background"	},
+	{ kTermChangeForeground		, "foreground"	},
+	{ kTermEcho			, "echo"	},
+	{ kTermClear			, "clear"	},
+	{ kTermExit			, "exit"	},
 	{ kTermLayout			, "set_layout"	},
-	{ kTermHelp				, "help"		},
-	{ kTermGetSector		, "hexdump"		},
-	{ kTermReadFile			, "read"		},
-	{ kTermMoreFile			, "more"		},
-	{ kTermDeleteFile		, "rm"			},
-	{ kTermList				, "ls"			}
+	{ kTermHelp			, "help"	},
+	{ kTermGetSector		, "hexdump"	},
+	{ kTermReadFile			, "read"	},
+	{ kTermMoreFile			, "more"	},
+	{ kTermDeleteFile		, "rm"		},
+	{ kTermList			, "ls"		},
+	{ kTermWriteFile		, "write"	}
 };
 
 static void getCommand(char *cmd)
@@ -76,7 +78,7 @@ static void getCommand(char *cmd)
 				break;
 			}
 			case 0x11:{
-			/*
+				/*
 				if(getXCursor() > CURSOR_START_XPOS){
 					putChar(0x11);
 					i--;
@@ -84,7 +86,7 @@ static void getCommand(char *cmd)
 				break;
 			}
 			case 0x12:{
-            /*
+				/*
 				if(getXCursor() < (strlen(cmd)+CURSOR_START_XPOS)){
 					putChar(0x12);
 					i++;
@@ -92,11 +94,11 @@ static void getCommand(char *cmd)
 				break;
 			}
 			case 0x13:{
-            /* Mapped as up arrow: create history command */
+        			/* Mapped as up arrow: create history command */
 				continue;
 			}
 			case 0x14:{
-            /* Mapped as down arrow:create history command */
+				/* Mapped as down arrow:create history command */
 				continue;
 			}
 			case '\r':
@@ -269,6 +271,7 @@ void kTermMoreFile(char *filename)
 	unsigned char buffer[512]; 
 	struct fat12Entry *dir;
 	int i=0;
+	char tmp[50];
 	FILE f;
 
 	scrollDisable();
@@ -290,7 +293,8 @@ void kTermMoreFile(char *filename)
 		for(i=0;i<31;i++){
 			if(dir->name[0] != 0 && dir->name[0] != '.'){
 				/* file's name */
-				print("\r\n%s.%s ",strtok(dir->name,' ',0),substr(dir->name,8,11));
+				substr(dir->name,8,11,tmp);
+				print("\r\n%s.%s ",strtok(dir->name,' ',0),tmp);
 			}
 			dir++;
 		}
@@ -334,14 +338,38 @@ static void kTermList(char *folder)
 	}
 }
 
+static void kTermWriteFile(char *name)
+{
+	FILE f;
+	unsigned char buffer[512] = "Let's write a file";
+	f=openFile(name,'w');
+	if(f.flags == FS_FILE_INVALID){
+		print("\r\nFile not found...");
+		closeFile(&f);
+		return;
+	} else if (f.flags== FS_DIRECTORY){
+		print("\r\n%s is a directory");
+		closeFile(&f);
+		return;
+	}
+
+	if(writeFile(&f,buffer,19) > 0)
+		print("Writing complete\r\n");
+
+	closeFile(&f);
+}
+
+
 static int run(char *cmd)
 {
 	char *command=strtok(cmd,' ',0);
 	int i=0;
+	char buffer[50];
 
 	for(i=0;i<NUM_FUNCTIONS;i++){
 		if(!strncmp(command,fPtr[i].name,strlen(fPtr[i].name))){
-			fPtr[i].funcPTR(substr(cmd,strlen(command)+1,0));
+			substr(cmd,strlen(command)+1,0,buffer);
+			fPtr[i].funcPTR(buffer);
 			return 0;
 		}
 	}

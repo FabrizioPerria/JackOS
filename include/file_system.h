@@ -31,11 +31,12 @@ typedef struct _FILESYSTEM{
 	int (*read)(FILE_PTR file,unsigned char *buffer,unsigned int length);
 	int (*write)(FILE_PTR file,unsigned char *buffer, unsigned int length);
 	void (*close)(FILE_PTR file);
-	FILE (*open)(char *fileName);
+	FILE (*open)(char *fileName, char mode);
 }FILESYSTEM,*FILESYSTEM_PTR;
 
 FILE openFile(char *fileName,char mode);
 int readFile(FILE_PTR file,unsigned char *buffer,unsigned int length);
+int writeFile(FILE_PTR file,unsigned char* buffer,unsigned int length);
 void closeFile(FILE_PTR file);
 void registerFS(FILESYSTEM_PTR newFS,int deviceId);
 void unregisterFS(unsigned int deviceID);

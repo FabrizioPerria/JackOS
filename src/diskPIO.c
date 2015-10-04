@@ -10,6 +10,7 @@
 #define PARTITIONS_PER_DISK 4
 #define DISKS_PER_IDE 2
 #define NUM_IDE_CHANNELS 2
+
 /* Maximum number of disks (not partitions...) that can be registered */
 #define NUM_DISKS (DISKS_PER_IDE * NUM_IDE_CHANNELS)
 
@@ -27,11 +28,11 @@ partitionTableEntry pt[NUM_DISKS][PARTITIONS_PER_DISK];
 void initPartitionTable(int currentDrive)
 {
 	unsigned char buffer[512];
-    /* read the first sector of the disk
-       and find the partition table starting 
-       from byte 446 *address 0x1BE) */
+	/* read the first sector of the disk
+	and find the partition table starting 
+	from byte 446 *address 0x1BE) */
 
-	if(readLBA28(currentDrive,BOOT_SECTOR,1,buffer) > 0){
+	if (readLBA28(currentDrive,BOOT_SECTOR,1,buffer) > 0){
 		/* TODO: check file system before loading anything to the structures */
 		memcpy((unsigned char *)pt[currentDrive] ,(buffer+PARTITION_TABLE_OFFSET), 16);
 		FAT12Init(currentDrive);
@@ -42,7 +43,7 @@ void initPartitionTable(int currentDrive)
 
 /* Get the register to use to address ide1 or ide2 */
 static int ATA_getPort(int ide){
-	if(ide == 1)
+	if (ide == 1)
 		return IDE1_PORTS;
 	else if (ide == 2)
 		return IDE2_PORTS;
@@ -53,7 +54,7 @@ static int ATA_getPort(int ide){
 /* Return the partition table which can be read by the file system drivers */
 partitionTableEntry *getPartitionTable(unsigned int drive)
 {
-	if(drive < 2)
+	if (drive < 2)
 		return pt[drive];
 	else
 		return NULL;
@@ -63,9 +64,9 @@ partitionTableEntry *getPartitionTable(unsigned int drive)
 static void pio_400ns_delay(int port)
 {
 	inPortB(port + ATA_STATUS_PORT);
-    inPortB(port + ATA_STATUS_PORT);
-    inPortB(port + ATA_STATUS_PORT);
-    inPortB(port + ATA_STATUS_PORT);
+	inPortB(port + ATA_STATUS_PORT);
+	inPortB(port + ATA_STATUS_PORT);
+	inPortB(port + ATA_STATUS_PORT);
 }
 
 /* Reset a PIO controller */
@@ -81,7 +82,7 @@ void ATA_probe(int driveToProbe)
 	char res = 0;
 	char master_slave;
 	int ide = ATA_getPort((driveToProbe / 2)+1);
-	if(!ide)
+	if (!ide)
 		return;
 	pio_reset(ide);
 	master_slave = (driveToProbe % 2 == 0)? ATA_MASTER : ATA_SLAVE;
@@ -94,16 +95,17 @@ void ATA_probe(int driveToProbe)
 	outPortB(ide + ATA_ADDR_HI_PORT,0);
 	outPortB(ide + ATA_CMD_PORT,ATA_IDENTIFY_COMMAND);
 	res = inPortB(ide + ATA_STATUS_PORT);
-	if(res){
+	if (res){
 		/* The drive exists */
-		while(inPortB(ide + ATA_STATUS_PORT) & ATA_BSY_BIT);
+		while (inPortB(ide + ATA_STATUS_PORT) & ATA_BSY_BIT);
 
         /* is it an ata drive? if not, don't do anything */
         /* otherwise let's register the partition table */
-		do{
+		do {
 			res = inPortB(ide + ATA_STATUS_PORT);
-			if(res & ATA_ERR_BIT) return;
-		}while(!(res & ATA_DRQ_BIT));
+			if(res & ATA_ERR_BIT)
+				return;
+		} while (!(res & ATA_DRQ_BIT));
 		drive[driveToProbe] = 1;
 		initPartitionTable(driveToProbe);
 	}
@@ -113,7 +115,7 @@ void ATA_probe(int driveToProbe)
 void initDisk()
 {
 	int i = 0;
-	for(i=0;i<4;i++)
+	for (i=0;i<4;i++)
 		ATA_probe(i);
 }
 
@@ -132,7 +134,7 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 	if(count <= 0 || data == NULL || ide == 0 || drive[driveSel] == 0)
 		return -1;
 
-    master_slave = (driveSel % 2 == 0)? ATA_MASTER : ATA_SLAVE;
+	master_slave = (driveSel % 2 == 0)? ATA_MASTER : ATA_SLAVE;
 	master_slave += 0x40;		/*0xE0->Master; 0xF0->Slave */
 
 	outPortB(ide + ATA_DRIVE_SEL_PORT,master_slave|((numblock>>24)&0x0F));
@@ -144,12 +146,12 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 
 	/* POLLING */
 	pio_400ns_delay(ide);
-	while(inPortB(ide + ATA_STATUS_PORT) & ATA_BSY_BIT);
-	do{
+	while (inPortB(ide + ATA_STATUS_PORT) & ATA_BSY_BIT);
+	do {
 		res = inPortB(ide + ATA_STATUS_PORT);
-		if(res & ATA_ERR_BIT)
+		if (res & ATA_ERR_BIT)
 			return -1;
-	}while(!(res & ATA_DRQ_BIT));
+	} while(!(res & ATA_DRQ_BIT));
 
 	count*=256;
 	asm("cli\n"
@@ -159,7 +161,7 @@ int readLBA28(int driveSel,int numblock,int count,unsigned char *data)
 		"loop loopIN\n"::"c"(count),"m"(data),"d"(ide));
 	pio_400ns_delay(ide);
 	asm("sti");
-	return count;/*strlen((char *)data);*/
+	return count;
 }
 
 /* Write the content of data in a disk
@@ -188,12 +190,12 @@ int writeLBA28(int driveSel,int numblock,int count,unsigned char *data)
 
     /* POLLING */
     pio_400ns_delay(ide);
-    while(inPortB(ide + ATA_STATUS_PORT) & ATA_BSY_BIT);
-    do{
+    while (inPortB(ide + ATA_STATUS_PORT) & ATA_BSY_BIT);
+    do {
         res = inPortB(ide + ATA_STATUS_PORT);
-        if(res & ATA_ERR_BIT)
+        if (res & ATA_ERR_BIT)
             return -1;
-    }while(!(res & ATA_DRQ_BIT));
+    } while(!(res & ATA_DRQ_BIT));
 
     count*=256;
 

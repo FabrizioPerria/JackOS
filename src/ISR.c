@@ -46,15 +46,15 @@ extern void isr31();
 
 void isr_handler(struct registers *reg)
 {
-	if(reg != NULL){
-		if(reg->intNum < 19){
+	if (reg != NULL){
+		if (reg->intNum < 19){
 			/* Print the specific message associated (have a look at the exception_messages header...) */
 			putString(exception_messages[reg->intNum]);
 			putString(". System Halted.");
 			asm("cli");
 			asm("hlt");
 		}
-		if(reg->intNum < 32){
+		if (reg->intNum < 32){
 			putString(exception_messages[19]);
 			putString(". System Halted.");
 			asm("cli");

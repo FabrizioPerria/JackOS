@@ -82,12 +82,12 @@ void getCPUVendor()
 {
 	static unsigned char vendor[12]={0};
 	__asm__ __volatile__("movl $0, %%eax\n"
-							"leal (%0),%%edi\n"
-							"cpuid\n"
-							"movl %%ebx,(%%edi)\n"
-							"movl %%edx,4(%%edi)\n"
-							"movl %%ecx,8(%%edi)\n":
-							"=m" (vendor)::);
+				"leal (%0),%%edi\n"
+				"cpuid\n"
+				"movl %%ebx,(%%edi)\n"
+				"movl %%edx,4(%%edi)\n"
+				"movl %%ecx,8(%%edi)\n":
+				"=m" (vendor)::);
 
 	print("CPU Vendor: %s\r\n",vendor);
 }
@@ -99,10 +99,10 @@ void getCPUFeatures()
 	int edxContent=0;
 	int ecxContent=0;
 	__asm__ __volatile__("movl $1, %%eax\n"
-							"cpuid\n"
-							"movl %%edx,%0\n"
-							"movl %%ecx,%1\n":
-							"=m" (edxContent), "=m" (ecxContent)::);
+				"cpuid\n"
+				"movl %%edx,%0\n"
+				"movl %%ecx,%1\n":
+				"=m" (edxContent), "=m" (ecxContent)::);
 
 	for(i=0;i<32;i++){
 		if((edxContent >> i)&1){

@@ -41,7 +41,7 @@ void VMMinit()
 	int i,frame,virt;
 
 	/*DEFAULT PAGE TABLE */
-    /* Default Page Table; it will be identity mapped */
+	/* Default Page Table; it will be identity mapped */
 	table_first_4mb = (pageTable*)phy_manager_alloc_blocks(1);
 	if(!table_first_4mb) return;
 
@@ -56,8 +56,8 @@ void VMMinit()
 
 	/* KERNEL'S PAGE TABLE */
 
-    /*3GB kernel's page table; map 1MB physicalmemory into
-      3GB virtual memory */
+	/*3GB kernel's page table; map 1MB physicalmemory into
+	3GB virtual memory */
 	table_kernel = (pageTable*)phy_manager_alloc_blocks(1);
 	if(!table_kernel) return;
 
@@ -122,8 +122,8 @@ void VMM_switch_directory(pageDirectory *pd)
 
 		/* load the Page Directory Base Register (cr3) */
 		__asm__ __volatile__("mov %0,%%eax\n"
-							"mov %%eax,%%cr3\n"
-							::"m"(currentDirectory));
+					"mov %%eax,%%cr3\n"
+					::"m"(currentDirectory));
 	}
 }
 
@@ -146,13 +146,13 @@ inline pageDirectoryEntry *VMM_PDE_lookup_entry(pageDirectory *tab,virtualAddres
 void VMM_flush_TLB_entry(virtualAddress address)
 {
 	__asm__ __volatile__ ("cli\n"
-						"invlpg %0\n"
-						"sti\n"::"m"(address));
+				"invlpg %0\n"
+				"sti\n"::"m"(address));
 }
 
 void enable_paging()
 {
 	__asm__ __volatile__ ("mov %cr0,%eax\n"
-						"or $0x8000000,%eax\n"
-						"mov %eax,%cr0\n");
+				"or $0x8000000,%eax\n"
+				"mov %eax,%cr0\n");
 }

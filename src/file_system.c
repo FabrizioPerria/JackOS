@@ -4,9 +4,12 @@
 
 static FILESYSTEM *fs[MAX_DEVICES];
 
-/* the filename will be with format 
-   N/directoryX/flename 
+/* the filename will be with format
+
+   N/directoryX/flename
+
    where N is the index in the filesystem lookup table */
+
 static int isNumber(char c)
 {
 	return ((c >= '0') && (c <= '9'));
@@ -14,21 +17,14 @@ static int isNumber(char c)
 
 FILE openFile(char *fileName,char mode)
 {
-	FILE file;
+	FILE dummy;
 	if(isNumber(fileName[0])){
 		if(fileName != NULL && fs[fileName[0]-48]->present == 1){
-			file=fs[fileName[0]-48]->open(fileName);
-
-			if(file.flags == FS_FILE_INVALID && mode == 'w'){
-				/*Create a file*/
-			}
-
-			file.mode = mode;
-			return file;
+			return fs[fileName[0]-48]->open(fileName,mode);
 		}
 	}
-	file.flags = FS_FILE_INVALID;
-	return file;
+	dummy.flags = FS_FILE_INVALID;
+	return dummy;
 }
 
 void deleteFile(char *fileName)
@@ -47,9 +43,9 @@ int readFile(FILE *file,unsigned char *buffer,unsigned int length)
 	int lengthBlocks=0;
 
 	if(file!= NULL && file->mode == 'r'){
-		if(fs[file->deviceID]){
-			lengthBlocks=length/512;
-			if(length%512 != 0)
+		if(fs[file->deviceID]->present){
+			lengthBlocks=length/512; /*TODO */
+			if(length%512 != 0) /*TODO */
 				lengthBlocks++;
 			return fs[file->deviceID]->read(file,buffer,lengthBlocks);
 		}
@@ -57,19 +53,19 @@ int readFile(FILE *file,unsigned char *buffer,unsigned int length)
 	return 0;
 }
 
-void writeFile(FILE *file, unsigned char *buffer,unsigned int length)
+int writeFile(FILE *file, unsigned char *buffer,unsigned int length)
 {
-	(void)file;
-	(void)buffer;
-	(void)length;
-/*
+	int lengthBlocks=0;
+
 	if(file != NULL){
-		if(file->mode == 'a'){
-			Append data to the existing file; the file must exist
-		} else if(file->mode == 'w'){
-			Overwrite the existing content
+		if(fs[file->deviceID]->present){
+			lengthBlocks=length/512; /*TODO */
+			if(length % 512 != 0)	/*TODO */
+				lengthBlocks++;
+			return fs[file->deviceID]->write(file,buffer,lengthBlocks);
 		}
-	}*/
+	}
+	return 0;
 }
 
 FILE *listFile(char *folder,int *maxItems)

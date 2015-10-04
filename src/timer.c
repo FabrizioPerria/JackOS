@@ -48,8 +48,8 @@ void timer_handler(struct registers *reg)
 	(void)reg;
 	ticks++;
 	if(ticks % 121 == 0){
-        /*putString("\r\nAnother second passed: ");*/
-        /*printNum(++seconds);*/
+		/*putString("\r\nAnother second passed: ");*/
+		/*printNum(++seconds);*/
 		seconds++;
 		refreshTimer();
 	}

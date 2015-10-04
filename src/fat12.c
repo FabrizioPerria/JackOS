@@ -14,8 +14,8 @@ struct MOUNT_INFO _mi[MAX_DEVICES];
 static void removeSpaces(char *name)
 {
 	int i=strlen(name);
-	for(;i>=0;i--){
-		if(name[i] <= ' ')
+	for (; i >= 0; i--){
+		if (name[i] <= ' ')
 			name[i] = 0;
 	}
 }
@@ -38,8 +38,8 @@ static void name2DOS(char *fileName, char *dosName)
 
 	memset((unsigned char*)dosName,' ',11);
 	/* 11 is the maximum length of a name is DOS (with extension)*/
-	for(i=0,j=0; (i < strlen(fileName));i++,j++){
-		if(fileName[i] == '.'){
+	for (i = 0,j = 0; (i < strlen(fileName));i++,j++){
+		if (fileName[i] == '.'){
 			j=7;
 			continue;
 		}
@@ -163,7 +163,7 @@ FILE FAT12Create(char *fileName)
 	int i,j=1,tmp =0, len=0, lastCluster,freeCluster,nextEntry = 0, nextCluster = 0,pos=0,phySector=0, drive=-1;
 	unsigned char buffer[512];
 	unsigned char *time;
-	char *tmpName,name[12];
+	char tmpName[50],name[12],bufName[50];
 	struct fat12Entry *directory;
 
 	drive = getDriveFromPath(fileName);
@@ -184,14 +184,18 @@ FILE FAT12Create(char *fileName)
 			len++;
 		} else {
 			len -= (tmp + 1);
-			if (len == 1)
+			if (len == 1){
 				/* Root folder */
 				folder = FAT12Directory(drive," ",NULL);
-			else
-				folder = FAT12Directory(drive,substr(fileName,2,tmp),NULL);
-
-			if (folder.flags == FS_FILE_INVALID)
+			}else if (substr(fileName,2,len,bufName) > 0){
+				folder = FAT12Directory(drive,bufName,NULL);
+			} else {
+				folder.flags = FS_FILE_INVALID;
+			}
+			if (folder.flags == FS_FILE_INVALID){
+				folder.deviceID = drive;
 				return folder;
+			}
 			break;
 		}
 	}
@@ -232,6 +236,7 @@ FILE FAT12Create(char *fileName)
 		j++;
 	}
 	if(nextEntry == ((_mi[drive].sectorSize * _mi[drive].fatSize * 8) /12)){
+		file.deviceID = drive;
 		file.flags = FS_FILE_INVALID;
 		return file;
 	}
@@ -251,10 +256,11 @@ FILE FAT12Create(char *fileName)
 
 	directory += pos;
 
-	tmpName = substr(fileName,len+1,strlen(fileName));
+	substr(fileName,len+1,strlen(fileName),tmpName);
 	name2DOS(tmpName,name);
 	strcpy(directory->name,strtok(name,'.',0),8);
-	strcpy(directory->extension,substr(name,strlen(directory->name),3),3);
+	substr(name,strlen(directory->name),3,bufName);
+	strcpy(directory->extension,bufName,3);
 	directory->attribute = FS_FILE;
 	directory->startingCluster = nextEntry;
 	directory->fileSize = _mi[drive].sectorSize;
@@ -271,7 +277,7 @@ FILE FAT12Create(char *fileName)
 	writeLBA28(drive,phySector,1,buffer);
 
 	/* return the file created */
-	return FAT12Directory(drive,fileName+2,&folder);
+	return FAT12Directory(drive,tmpName,&folder);
 }
 
 
@@ -283,13 +289,6 @@ FILE *FAT12List(FILE folder)
 	int i=0, j = 0, phySector=0,cnt=0,nextCluster=0;
 	unsigned char buffer[512];
 	struct fat12Entry *directory;
-/*****************************************************************************/
-	static int l=0;
-	if(l==0){
-		l++;
-		FAT12Create("0/crea.txt");
-	}
-/*****************************************************************************/
 
 	memset((unsigned char *)chain,0,224 * sizeof(FILE));
 	if(folder.flags == FS_DIRECTORY){
@@ -493,7 +492,7 @@ FILE FAT12Directory(int drive, char *name, FILE *folder)
 {
 	FILE f;
 	unsigned char buffer[512];
-	char dosName[12],tmpName[12],bufName[50];
+	char dosName[12],tmpName[12],bufName[50],bufName2[50];
 	int i=0,j,k=-1,phySector,nextCluster,cnt=1;
 	struct fat12Entry *directory;
 
@@ -559,11 +558,13 @@ FILE FAT12Directory(int drive, char *name, FILE *folder)
 
 				if(k > 0){
 					strcpy(bufName,name,50);
-					if(folder == NULL)
-						f=FAT12Directory(drive,substr(bufName,k+1,0),&f);
-					else
-						f=FAT12Directory(drive,substr(bufName,k,strlen(name)),&f);
-
+					if(folder == NULL){
+						substr(bufName,k+1,0,bufName2);
+						f=FAT12Directory(drive,bufName2,&f);
+					}else{
+						substr(bufName,k,strlen(name),bufName2);
+						f=FAT12Directory(drive,bufName2,&f);
+					}
 				}else if(f.flags == FS_DIRECTORY){
 					while(1){
 						nextCluster = getNextClusterFromFAT(drive,f.currentCluster);
@@ -596,20 +597,28 @@ FILE FAT12Directory(int drive, char *name, FILE *folder)
 }
 
 /* Return a reference of a file or returns a file with FS_FILE_INVALID flag set if not found */
-FILE FAT12Open(char *name)
+FILE FAT12Open(char *name,char mode)
 {
 	FILE file;
+	int drive;
+
 	if(name == NULL){
 		file.flags = FS_FILE_INVALID;
 		return file;
 	}
 
-	file = FAT12Directory(name[0]-48,name+2,NULL);
-
-	if(file.flags != FS_FILE && file.flags != FS_DIRECTORY){
-		/*File not found */
+	drive = getDriveFromPath(name);
+	if (drive < 0){
 		file.flags = FS_FILE_INVALID;
+		return file;
 	}
+
+	file = FAT12Directory(drive,name+2,NULL);
+
+	if(file.flags != FS_FILE && file.flags != FS_DIRECTORY && mode == 'w'){
+		file = FAT12Create(name);
+	}
+	file.mode = mode;
 
 	return file;
 }

@@ -280,7 +280,7 @@ void print(char *str,...)
 					tmp=strlen(convert(x,16));
 					if(tmp < digit){
 						for(j=0;j<(digit-tmp);j++)
-							putChar('0');   
+							putChar('0');
 					}
 					putString(convert(x,16));
 					break;

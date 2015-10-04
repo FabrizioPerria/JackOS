@@ -31,14 +31,14 @@ void (*irqRoutines[16])(struct registers*)={0};
 */
 void irq_setHandler(unsigned int irqNum,void (*handler)(struct registers *))
 {
-	if(handler != NULL && irqNum < 16)
+	if (handler != NULL && irqNum < 16)
 		irqRoutines[irqNum]=handler;
 }
 
 /* Uninstall an handler from the lookup table given the number of interrupt*/
 void irq_unsetHandler(unsigned int irqNum)
 {
-	if(irqNum < 16)
+	if (irqNum < 16)
 		irqRoutines[irqNum]=NULL;
 }
 
@@ -50,12 +50,12 @@ void irq_unsetHandler(unsigned int irqNum)
 void irq_handler(struct registers *reg)
 {
 	void (*handler)(struct registers*);
-	if(reg!=NULL){
+	if (reg!=NULL){
 		handler=irqRoutines[reg->intNum-32];
-		if(handler != NULL)
+		if (handler != NULL)
 			handler(reg);		/* If exists, execute the handler */
 
-		if(reg->intNum >=40)
+		if (reg->intNum >=40)
 			outPortB(0xA0,0x20);
 		outPortB(0x20,0x20);
 	}

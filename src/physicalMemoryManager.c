@@ -13,7 +13,8 @@ static int *bitmapPtr=0;
    the virtual memory manager will set free the available regions */
 int phy_manager_init(int memory_size,int *bitmapAddr)
 {
-	if(memorySize < 0) return -1;
+	if(memorySize < 0)
+		return -1;
 
 	memorySize= memory_size;
 	bitmapPtr = bitmapAddr;
@@ -44,21 +45,25 @@ inline int mmap_test(int bit)
 {
 	if (bit > 0)
 		return (bitmapPtr[bit/32] & (1<<(bit%32)));
-	else return -1;
+	else
+		return -1;
 }
 
 /* Get the length of the memory seen by the BIOS */
 unsigned long getMemorySize(struct multiboot_info *ptr)
 {
-	if(ptr == NULL) return 0;
-	else return ptr->memoryLow + ptr->memoryHigh;
+	if(ptr == NULL)
+		return 0;
+	else
+		return ptr->memoryLow + ptr->memoryHigh;
 }
 
 /*Get the pointer to a countiguous set of <blocks> free blocks */
 int phy_get_free_block(int blocks)
 {
 	int i=0,j=0,k=0;
-	if(blocks < 0) return -1;
+	if(blocks < 0)
+		return -1;
 	for(i=0;i<maxBlocks/32;i++){
 		if(bitmapPtr[i] != (int)(0xffffffff)){
 			for(j=0;j<32;j++){
@@ -69,7 +74,7 @@ int phy_get_free_block(int blocks)
 					}else break;
 				}
 				if(k==blocks)
-					return (i*32)+j; 
+					return (i*32)+j;
 			}
 		}
 	}

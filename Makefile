@@ -89,7 +89,10 @@ floppy:
 main.o: main.c ${filter-out main.o,${OBJS}} multiboot.h
 	${TARGET}${CC} ${CFLAGS} -o ${OBJDIR}/main.o ${SRCDIR}/main.c
 
-kernel: ${OBJS}
+${OBJDIR}:
+	mkdir -p ${OBJDIR}
+
+kernel: ${OBJDIR} ${OBJS}
 	${TARGET}${LD} ${LDFLAGS} -o ${BINDIR}/${KERNEL} ${OBJDIR}/*.o
 	${OBJCOPY} ${OBJCOPYFLAGS} ${BINDIR}/${KERNEL} ${BINDIR}/${KERNELSYM}
 

@@ -57,28 +57,29 @@ OBJCOPYFLAGS = --only-keep-debug
 all: kernel
 
 floppy:
-	${RM} -f ${IMAGE}.dmg
+	${RM} -f ${IMAGE}
 	${TARGET}${AS} ${FLOPPYSRCDIR}/stage1.s -o ${FLOPPY_STAGE1_OBJ}
 	${TARGET}${AS} ${FLOPPYSRCDIR}/stage2.s -o ${FLOPPY_STAGE2_OBJ}
 	${TARGET}${LD} -Ttext=0x7c00 --oformat=binary ${FLOPPY_STAGE1_OBJ} -o ${FLOPPY_STAGE1_BIN}
+	${DD} if=/dev/zero of=${IMAGE} bs=512 count=2880
+
 	${TARGET}${LD} -Ttext=0x0000 --oformat=binary ${FLOPPY_STAGE2_OBJ} -o ${FLOPPY_STAGE2_BIN}
 
-	hdiutil create -size 1440k -fs MS-DOS -layout NONE -o ${IMAGE}.dmg
-
-	@DEVICE=$(shell hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount ${IMAGE}.dmg | grep /dev/disk | awk '{print $$1}'); \
-		echo "Mounted device: $$DEVICE"; \
-		sudo mkdir -p /Volumes/Floppy; \
-		sudo mount -t msdos $$DEVICE /Volumes/Floppy; \
-		sudo cp ${FLOPPY_STAGE2_BIN} /Volumes/Floppy/; \
-		sudo touch /Volumes/Floppy/file.txt; \
-		sudo bash -c "dmesg > /Volumes/Floppy/file.txt"; \
-		sudo bash -c "echo FINITO >> /Volumes/Floppy/file.txt"; \
-		sudo mkdir -p /Volumes/Floppy/folder; \
-		sudo bash -c "echo 'Se stampa questo, i path funzionano' > /Volumes/Floppy/folder/print.txt"; \
-		sudo umount /Volumes/Floppy; \
-		sudo rmdir /Volumes/Floppy; \
-		hdiutil detach $$DEVICE; \
-		${RM} -f ${FLOPPY_STAGE1_OBJ} ${FLOPPY_STAGE2_OBJ} ${FLOPPY_STAGE1_BIN} ${FLOPPY_STAGE2_BIN}
+	# @DEVICE=$$(hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount ${IMAGE} | grep /dev/disk | awk '{print $$1}'); \
+	# 	echo "Mounted device: $$DEVICE"; \
+	# 	newfs_msdos -F 12 -S 512 -b 1 -s 2880 $$DEVICE; \
+	# 	hdiutil detach $$DEVICE
+	${DD} if=${FLOPPY_STAGE1_BIN} of=${IMAGE} conv=notrunc
+	sudo mkdir -p /Volumes/Floppy
+	sudo hdiutil attach -mountpoint /Volumes/Floppy ${IMAGE}
+	sudo cp ${FLOPPY_STAGE2_BIN} /Volumes/Floppy/
+	sudo touch /Volumes/Floppy/file.txt
+	sudo bash -c "dmesg > /Volumes/Floppy/file.txt"
+	sudo bash -c "echo FINITO >> /Volumes/Floppy/file.txt"
+	sudo mkdir -p /Volumes/Floppy/folder
+	sudo bash -c "echo 'Se stampa questo, i path funzionano' > /Volumes/Floppy/folder/print.txt"
+	hdiutil detach /Volumes/Floppy
+	${RM} -f ${FLOPPY_STAGE1_OBJ} ${FLOPPY_STAGE2_OBJ} ${FLOPPY_STAGE1_BIN} ${FLOPPY_STAGE2_BIN}
 	
 %.o: %.S
 	${TARGET}${AS} ${ASFLAGS} -o ${OBJDIR}/$@ $<

@@ -1,5 +1,5 @@
 # TARGET DECLARATION
-TARGET = i486-slitaz-linux-
+TARGET = x86_64-elf-
 
 #TOOLS DECLARATION
 AS		= as
@@ -7,7 +7,7 @@ CC		= gcc
 LD		= ld
 DD		= dd
 RM		= rm
-OBJCOPY = objcopy
+OBJCOPY = llvm-objcopy
 DD		= dd
 
 #DIRECTORIES DECLARATION
@@ -49,38 +49,37 @@ vpath %.S   ${ASMDIR}
 vpath %.c   ${SRCDIR}
 
 #FLAGS DECLARATION
-ASFLAGS = -I ${ASMDIR}/
-CFLAGS = -g -Wall -Wextra -Werror -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c #-O2
-LDFLAGS = -T ${LINKER_FILE}
+ASFLAGS = -I ${ASMDIR}/ --32
+CFLAGS = -g -Wall -Wextra -v -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c -m32 -mno-red-zone
+LDFLAGS = -T ${LINKER_FILE} -m elf_i386
 OBJCOPYFLAGS = --only-keep-debug
 
 all: kernel
 
 floppy:
-	${RM} -f ${IMAGE}
+	${RM} -f ${IMAGE}.dmg
 	${TARGET}${AS} ${FLOPPYSRCDIR}/stage1.s -o ${FLOPPY_STAGE1_OBJ}
 	${TARGET}${AS} ${FLOPPYSRCDIR}/stage2.s -o ${FLOPPY_STAGE2_OBJ}
 	${TARGET}${LD} -Ttext=0x7c00 --oformat=binary ${FLOPPY_STAGE1_OBJ} -o ${FLOPPY_STAGE1_BIN}
-	${DD} if=${ZERO} of=${IMAGE} bs=512 count=2880
-	losetup /dev/loop0 ${IMAGE}
-	${DD} if=${FLOPPY_STAGE1_BIN} of=${IMAGE} conv=notrunc
-	${TARGET}${LD} --oformat=binary ${FLOPPY_STAGE2_OBJ} -o ${FLOPPY_STAGE2_BIN}
-	mount /dev/loop0 /mnt/floppy -t msdos -o "fat=12"
-	cp ${FLOPPY_STAGE2_BIN} /mnt/floppy
-	touch /mnt/floppy/file.txt
-	dmesg > /mnt/floppy/file.txt
-	dmesg >> /mnt/floppy/file.txt
-	dmesg >> /mnt/floppy/file.txt
-	echo FINITO >> /mnt/floppy/file.txt
-	mkdir /mnt/floppy/folder
-	echo "Se stampa questo, i path funzionano" > /mnt/floppy/folder/print.txt
-	umount /mnt/floppy
-	losetup -d /dev/loop0
-	${RM} -f ${FLOPPY_STAGE1_OBJ}
-	${RM} -f ${FLOPPY_STAGE2_OBJ}
-	${RM} -f ${FLOPPY_STAGE1_BIN}
-	${RM} -f ${FLOPPY_STAGE2_BIN}
+	${TARGET}${LD} -Ttext=0x0000 --oformat=binary ${FLOPPY_STAGE2_OBJ} -o ${FLOPPY_STAGE2_BIN}
 
+	hdiutil create -size 1440k -fs MS-DOS -layout NONE -o ${IMAGE}.dmg
+
+	@DEVICE=$(shell hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount ${IMAGE}.dmg | grep /dev/disk | awk '{print $$1}'); \
+		echo "Mounted device: $$DEVICE"; \
+		sudo mkdir -p /Volumes/Floppy; \
+		sudo mount -t msdos $$DEVICE /Volumes/Floppy; \
+		sudo cp ${FLOPPY_STAGE2_BIN} /Volumes/Floppy/; \
+		sudo touch /Volumes/Floppy/file.txt; \
+		sudo bash -c "dmesg > /Volumes/Floppy/file.txt"; \
+		sudo bash -c "echo FINITO >> /Volumes/Floppy/file.txt"; \
+		sudo mkdir -p /Volumes/Floppy/folder; \
+		sudo bash -c "echo 'Se stampa questo, i path funzionano' > /Volumes/Floppy/folder/print.txt"; \
+		sudo umount /Volumes/Floppy; \
+		sudo rmdir /Volumes/Floppy; \
+		hdiutil detach $$DEVICE; \
+		${RM} -f ${FLOPPY_STAGE1_OBJ} ${FLOPPY_STAGE2_OBJ} ${FLOPPY_STAGE1_BIN} ${FLOPPY_STAGE2_BIN}
+	
 %.o: %.S
 	${TARGET}${AS} ${ASFLAGS} -o ${OBJDIR}/$@ $<
 

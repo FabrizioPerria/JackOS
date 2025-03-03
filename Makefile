@@ -50,7 +50,7 @@ vpath %.c   ${SRCDIR}
 
 #FLAGS DECLARATION
 ASFLAGS = -I ${ASMDIR}/ --32
-CFLAGS = -g -Wall -Wextra -v -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c -m32 -mno-red-zone
+CFLAGS = -g -Wall -Wextra -Werror -v -pedantic -finline-functions -nostdinc -ffreestanding -fno-builtin -I${INCLUDEDIR} -c -m32 -mno-red-zone
 LDFLAGS = -T ${LINKER_FILE} -m elf_i386
 OBJCOPYFLAGS = --only-keep-debug
 

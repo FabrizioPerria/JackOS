@@ -1,8 +1,9 @@
 #include <file_system.h>
-#include <system.h>
+#include <screen.h>
 #include <string.h>
+#include <system.h>
 
-static FILESYSTEM *fs[MAX_DEVICES];
+static FILESYSTEM* fs[MAX_DEVICES];
 
 /* the filename will be with format
 
@@ -10,105 +11,115 @@ static FILESYSTEM *fs[MAX_DEVICES];
 
    where N is the index in the filesystem lookup table */
 
-static int isNumber(char c)
+static int isNumber (char c)
 {
-	return ((c >= '0') && (c <= '9'));
+    return ((c >= '0') && (c <= '9'));
 }
 
-FILE openFile(char *fileName,char mode)
+void openFile (char* fileName, char mode, FILE* dummy)
 {
-	FILE dummy;
-	if(isNumber(fileName[0])){
-		if(fileName != NULL && fs[fileName[0]-48]->present == 1){
-			return fs[fileName[0]-48]->open(fileName,mode);
-		}
-	}
-	dummy.flags = FS_FILE_INVALID;
-	return dummy;
+    if (isNumber (fileName[0]))
+    {
+        if (fileName != NULL && fs[fileName[0] - 48]->present == 1)
+        {
+            fs[fileName[0] - 48]->open (fileName, mode, dummy);
+            return;
+        }
+    }
+    dummy->flags = FS_FILE_INVALID;
 }
 
-void deleteFile(char *fileName)
+void deleteFile (char* fileName)
 {
-	int fsIndex=0;
-	if(isNumber(fileName[0])){
-		fsIndex = fileName[0]-48;
-		if(fileName != NULL && fileName[1]=='/'){
-			fs[fsIndex]->remove(fileName);
-		}
-	}
+    int fsIndex = 0;
+    if (isNumber (fileName[0]))
+    {
+        fsIndex = fileName[0] - 48;
+        if (fileName != NULL && fileName[1] == '/')
+        {
+            fs[fsIndex]->remove (fileName);
+        }
+    }
 }
 
-int readFile(FILE *file,unsigned char *buffer,unsigned int length)
+int readFile (FILE* file, unsigned char* buffer, unsigned int length)
 {
-	int lengthBlocks=0;
+    int lengthBlocks = 0;
 
-	if(file!= NULL && file->mode == 'r'){
-		if(fs[file->deviceID]->present){
-			lengthBlocks=length/512; /*TODO */
-			if(length%512 != 0) /*TODO */
-				lengthBlocks++;
-			return fs[file->deviceID]->read(file,buffer,lengthBlocks);
-		}
-	}
-	return 0;
+    if (file != NULL && file->mode == 'r')
+    {
+        if (fs[file->deviceID]->present)
+        {
+            lengthBlocks = length / 512; /*TODO */
+            if (length % 512 != 0)       /*TODO */
+                lengthBlocks++;
+            return fs[file->deviceID]->read (file, buffer, lengthBlocks);
+        }
+    }
+    return 0;
 }
 
-int writeFile(FILE *file, unsigned char *buffer,unsigned int length)
+int writeFile (FILE* file, unsigned char* buffer, unsigned int length)
 {
-	int lengthBlocks=0;
+    int lengthBlocks = 0;
 
-	if(file != NULL){
-		if(fs[file->deviceID]->present){
-			lengthBlocks=length/512; /*TODO */
-			if(length % 512 != 0)	/*TODO */
-				lengthBlocks++;
-			return fs[file->deviceID]->write(file,buffer,lengthBlocks);
-		}
-	}
-	return 0;
+    if (file != NULL)
+    {
+        if (fs[file->deviceID]->present)
+        {
+            lengthBlocks = length / 512; /*TODO */
+            if (length % 512 != 0)       /*TODO */
+                lengthBlocks++;
+            return fs[file->deviceID]->write (file, buffer, lengthBlocks);
+        }
+    }
+    return 0;
 }
 
-FILE *listFile(char *folder,int *maxItems)
+FILE* listFile (char* folder, int* maxItems)
 {
-	FILE *numElements = NULL;
-	FILE folderFile;
+    FILE* numElements = NULL;
+    FILE folderFile;
 
-	if(folder == NULL)
-		return numElements;
+    if (folder == NULL)
+        return numElements;
 
-	if(strlen(folder) > 2 && folder[strlen(folder)-1] == '/')
-		folder[strlen(folder)-1] = 0;
+    if (strlen (folder) > 2 && folder[strlen (folder) - 1] == '/')
+        folder[strlen (folder) - 1] = 0;
 
-	folderFile = openFile(folder,'r');
-	if(folderFile.flags == FS_FILE_INVALID){
-		/*print("Cannot find %s\r\n",folder);*/
-		return numElements;
-	}
-	numElements = fs[folderFile.deviceID]->list(folderFile);
-	*maxItems = folderFile.length;
-	return numElements;
+    openFile (folder, 'r', &folderFile);
+    if (folderFile.flags == FS_FILE_INVALID)
+    {
+        /*print("Cannot find %s\r\n",folder);*/
+        return numElements;
+    }
+    numElements = fs[folderFile.deviceID]->list (folderFile);
+    *maxItems = folderFile.length;
+    return numElements;
 }
 
-void closeFile(FILE *file)
+void closeFile (FILE* file)
 {
-	if(file!= NULL){
-		if(fs[file->deviceID])
-			fs[file->deviceID]->close(file);
-	}
+    if (file != NULL)
+    {
+        if (fs[file->deviceID])
+            fs[file->deviceID]->close (file);
+    }
 }
 
-void registerFS(FILESYSTEM_PTR newFS,int deviceId)
+void registerFS (FILESYSTEM_PTR newFS, int deviceId)
 {
-	static int i = 0;
-	if(i < MAX_DEVICES && newFS){
-		fs[deviceId]->present = 1;
-		fs[deviceId]=newFS;
-		i++;
-	}
+    static int i = 0;
+    if (i < MAX_DEVICES && newFS)
+    {
+        fs[deviceId]->present = 1;
+        fs[deviceId] = newFS;
+        i++;
+    }
 }
 
-void unregisterFS(unsigned int deviceID)
+void unregisterFS (unsigned int deviceID)
 {
-	if(deviceID < MAX_DEVICES)
-		fs[deviceID]=NULL;
+    if (deviceID < MAX_DEVICES)
+        fs[deviceID] = NULL;
 }

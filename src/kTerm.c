@@ -347,22 +347,19 @@ static void kTermDeleteFile (char* fileName)
 static void kTermList (char* folder)
 {
     /* TODO: list all the elements until the first NULL */
-    FILE* fileList;
-    int numItems = 0, i;
+    FILE fileList[99];
+    int numItems = 0, i = 0, fileListIndex = 0;
     if (folder != NULL)
     {
-        fileList = listFile (folder, &numItems);
-        if (fileList != NULL)
+        listFile (folder, &numItems, fileList);
+        print ("\r\n");
+        for (i = 0; i < numItems; i++)
         {
-            print ("\r\n");
-            for (i = 0; i < numItems; i++)
+            if (strlen (fileList[fileListIndex].name) != 0 && fileList[fileListIndex].flags != FS_FILE_INVALID)
             {
-                if (strlen (fileList->name) != 0 && fileList->flags != FS_FILE_INVALID)
-                {
-                    print ("%s ", fileList->name);
-                }
-                fileList++;
+                print ("%s ", fileList[fileListIndex].name);
             }
+            fileListIndex++;
         }
     }
 }

@@ -30,7 +30,7 @@ typedef struct _FILESYSTEM
     void (*Directory) (int drive, char* directoryName, FILE* folder, FILE* f);
     int (*mount) (int drive);
     void (*remove) (char* fileName);
-    FILE_PTR (*list) (FILE folder);
+    void (*list) (FILE* folder, FILE chain[]);
     int (*read) (FILE_PTR file, unsigned char* buffer, unsigned int length);
     int (*write) (FILE_PTR file, unsigned char* buffer, unsigned int length);
     void (*close) (FILE_PTR file);
@@ -44,6 +44,6 @@ void closeFile (FILE_PTR file);
 void registerFS (FILESYSTEM_PTR newFS, int deviceId);
 void unregisterFS (unsigned int deviceID);
 void deleteFile (char* fileName);
-FILE* listFile (char* folder, int* numElements);
+void listFile (char* folder, int* numElements, FILE chain[]);
 
 #endif

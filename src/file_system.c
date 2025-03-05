@@ -76,13 +76,12 @@ int writeFile (FILE* file, unsigned char* buffer, unsigned int length)
     return 0;
 }
 
-FILE* listFile (char* folder, int* maxItems)
+void listFile (char* folder, int* numElements, FILE chain[])
 {
-    FILE* numElements = NULL;
     FILE folderFile;
 
     if (folder == NULL)
-        return numElements;
+        return;
 
     if (strlen (folder) > 2 && folder[strlen (folder) - 1] == '/')
         folder[strlen (folder) - 1] = 0;
@@ -91,11 +90,10 @@ FILE* listFile (char* folder, int* maxItems)
     if (folderFile.flags == FS_FILE_INVALID)
     {
         /*print("Cannot find %s\r\n",folder);*/
-        return numElements;
+        return;
     }
-    numElements = fs[folderFile.deviceID]->list (folderFile);
-    *maxItems = folderFile.length;
-    return numElements;
+    fs[folderFile.deviceID]->list (&folderFile, chain);
+    *numElements = folderFile.length;
 }
 
 void closeFile (FILE* file)

@@ -172,7 +172,7 @@ void FAT12Init (int drive)
 /*Create an empty file in the path specified */
 void FAT12Create (char* fileName, FILE* folder, FILE* file)
 {
-    FILE_PTR list;
+    FILE list[224];
     int i, j = 1, tmp = 0, len = 0, lastCluster, freeCluster, nextEntry = 0, nextCluster = 0, pos = 0, phySector = 0, drive = -1;
     unsigned char buffer[512];
     unsigned char* time;
@@ -225,11 +225,12 @@ void FAT12Create (char* fileName, FILE* folder, FILE* file)
     }
     /* folder points to the folder location */
 
-    list = FAT12List (*folder);
+    FAT12List (folder, list);
+    int indexList = 0;
 
-    while (strlen (list->name) != 0 && list->flags != FS_FILE_INVALID)
+    while (strlen (list[indexList].name) != 0 && list[indexList].flags != FS_FILE_INVALID)
     {
-        list++;
+        indexList++;
         pos++;
     }
 
@@ -314,45 +315,43 @@ void FAT12Create (char* fileName, FILE* folder, FILE* file)
     FAT12Directory (drive, tmpName, folder, file);
 }
 
-static FILE chain[224];
-
 /*Get the list of files contained in a folder */
-FILE* FAT12List (FILE folder)
+void FAT12List (FILE* folder, FILE chain[])
 {
     FILE tmp;
     int i = 0, j = 0, phySector = 0, cnt = 0, nextCluster = 0;
     unsigned char buffer[512];
     struct fat12Entry* directory;
 
-    memset ((unsigned char*) chain, 0, 224 * sizeof (FILE));
-    if (folder.flags == FS_DIRECTORY)
+    memset ((unsigned char*) chain, 0, 4 * sizeof (FILE));
+    if (folder->flags == FS_DIRECTORY)
     {
-        for (j = 0; j < (int) folder.length; j++)
+        for (j = 0; j < (int) folder->length; j++)
         {
-            if (folder.position == _mi[folder.deviceID].rootPosition)
+            if (folder->position == _mi[folder->deviceID].rootPosition)
             {
                 /*Root directory*/
-                i = _mi[folder.deviceID].rootPosition;
+                i = _mi[folder->deviceID].rootPosition;
             }
             else
             {
                 /* Go through directories */
-                i = 32 + (folder.currentCluster - 1);
+                i = 32 + (folder->currentCluster - 1);
             }
 
-            i += ((j * sizeof (struct fat12Entry)) / _mi[folder.deviceID].sectorSize);
+            i += ((j * sizeof (struct fat12Entry)) / _mi[folder->deviceID].sectorSize);
 
             if (phySector != i)
             {
                 phySector = i;
-                readLBA28 (folder.deviceID, phySector, 1, buffer);
+                readLBA28 (folder->deviceID, phySector, 1, buffer);
             }
 
             directory = (struct fat12Entry*) buffer;
 
             memset ((unsigned char*) &tmp, 0, sizeof (FILE));
 
-            directory += (j % (_mi[folder.deviceID].sectorSize / sizeof (struct fat12Entry)));
+            directory += (j % (_mi[folder->deviceID].sectorSize / sizeof (struct fat12Entry)));
             if (strlen (directory->name) == 0)
             {
                 continue;
@@ -369,7 +368,7 @@ FILE* FAT12List (FILE folder)
             tmp.eof = 0;
             tmp.position = directory->startingCluster;
             tmp.currentCluster = directory->startingCluster;
-            tmp.deviceID = folder.deviceID;
+            tmp.deviceID = folder->deviceID;
             tmp.indexPosition = phySector;
             if (directory->attribute == 0x10)
             {
@@ -377,7 +376,7 @@ FILE* FAT12List (FILE folder)
                 cnt = 0;
                 while (1)
                 {
-                    nextCluster = getNextClusterFromFAT (folder.deviceID, tmp.currentCluster);
+                    nextCluster = getNextClusterFromFAT (folder->deviceID, tmp.currentCluster);
                     if ((nextCluster == 0) || (nextCluster >= 0xff8))
                     {
                         tmp.length = (cnt * 512) / sizeof (struct fat12Entry);
@@ -399,21 +398,15 @@ FILE* FAT12List (FILE folder)
 
             if (strlen (tmp.name) && tmp.flags != FS_FILE_INVALID)
             {
-                chain[j] = tmp;
+                /* chain[j] = tmp; */
+                memcpy ((unsigned char*) &chain[j], (unsigned char*) &tmp, sizeof (FILE));
             }
         }
-        return chain;
     }
-    else if (folder.flags == FS_FILE)
+    else if (folder->flags == FS_FILE)
     {
         /* list of a file; provide only the file itself */
-        memcpy ((unsigned char*) &chain[0], (unsigned char*) &folder, sizeof (folder));
-        return chain;
-    }
-    else
-    {
-        /* File or folder not found... */
-        return NULL;
+        memcpy ((unsigned char*) &chain[0], (unsigned char*) &folder, sizeof (*folder));
     }
 }
 

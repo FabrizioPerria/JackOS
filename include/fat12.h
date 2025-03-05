@@ -44,7 +44,7 @@ void FAT12Open (char* fileName, char mode, FILE_PTR file);
 void FAT12Close (FILE_PTR file);
 int FAT12Mount (int drive);
 void FAT12Remove (char* fileName);
-FILE* FAT12List (FILE folder);
+void FAT12List (FILE* folder, FILE chain[]);
 void FAT12Create (char* fileName, FILE* folder, FILE* file);
 
 #endif

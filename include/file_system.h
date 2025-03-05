@@ -19,6 +19,7 @@ typedef struct _FILE
     int indexPosition;
     int position;
     int currentCluster;
+    int lastCluster;
     int deviceID;
     char mode;
 } FILE, *FILE_PTR;

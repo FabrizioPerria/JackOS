@@ -288,12 +288,11 @@ static void kTermReadFile (char* filename)
 void kTermMoreFile (char* filename)
 {
     unsigned char buffer[512];
-    struct fat12Entry* dir;
-    int i = 0;
-    char tmp[50];
     FILE f;
+    int lines = 0;
+    int bytesRead;
+    int bufferPos = 0;
 
-    scrollDisable();
     openFile (filename, 'r', &f);
     if (f.flags == FS_FILE_INVALID)
     {
@@ -303,31 +302,43 @@ void kTermMoreFile (char* filename)
     }
     else if (f.flags == FS_DIRECTORY)
     {
-        print ("\r\n%s is a directory");
+        print ("\r\n%s is a directory", filename);
         closeFile (&f);
         return;
     }
-    readFile (&f, buffer, f.length);
-    if (f.flags == FS_FILE)
+
+    print ("\r\n");
+    while ((bytesRead = readFile (&f, buffer, sizeof (buffer))) > 0)
     {
-        print ("\r\n%s", buffer);
-    }
-    else if (f.flags == FS_DIRECTORY)
-    {
-        dir = (struct fat12Entry*) buffer;
-        for (i = 0; i < 31; i++)
+        bufferPos = 0;
+
+        while (bufferPos < bytesRead)
         {
-            if (dir->name[0] != 0 && dir->name[0] != '.')
+            // Print up to 10 lines
+            lines = 0;
+            while (lines < 10 && bufferPos < bytesRead)
             {
-                /* file's name */
-                substr (dir->name, 8, 11, tmp);
-                print ("\r\n%s.%s ", strtok (dir->name, ' ', 0), tmp);
+                if (buffer[bufferPos] == '\n')
+                {
+                    lines++;
+                }
+                print ("%c", buffer[bufferPos]);
+                bufferPos++;
             }
-            dir++;
+
+            // If we're not at the end of the file or buffer
+            if (bufferPos < bytesRead || f.currentCluster != f.lastCluster)
+            {
+                print ("\r\n--More--");
+                char key = waitForKeyPress();
+                while (key != '\n')
+                    ;
+                print ("\r        \r"); // Clear the --More-- prompt
+            }
         }
     }
+
     closeFile (&f);
-    scrollEnable();
 }
 
 static void kTermGetCpuFeatures()

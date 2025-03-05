@@ -398,7 +398,6 @@ void FAT12List (FILE* folder, FILE chain[])
 
             if (strlen (tmp.name) && tmp.flags != FS_FILE_INVALID)
             {
-                /* chain[j] = tmp; */
                 memcpy ((unsigned char*) &chain[j], (unsigned char*) &tmp, sizeof (FILE));
             }
         }
@@ -705,6 +704,11 @@ void FAT12Open (char* name, char mode, FILE_PTR file)
     if (file->flags != FS_FILE && file->flags != FS_DIRECTORY && mode == 'w')
     {
         FAT12Create (name, NULL, file);
+    }
+
+    if (file->flags == FS_FILE)
+    {
+        file->lastCluster = findLastCluster (drive, file->currentCluster);
     }
     file->mode = mode;
 }
